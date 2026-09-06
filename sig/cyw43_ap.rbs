@@ -1,0 +1,18 @@
+class CYW43
+  # DHCP-backed access point support supplied by picoruby-cyw43-ap.
+  class AP
+    def self.enable: (String ssid, String password, ?Integer auth) -> bool
+    def self.disable: () -> bool
+    def self.active?: () -> bool
+    def self.ssid: () -> (String | nil)
+    def self.ipv4_address: () -> (String | nil)
+    def self.ipv4_netmask: () -> (String | nil)
+
+    def self.enable_ap_mode: (String ssid, String password, ?Integer auth) -> bool
+    def self.disable_ap_mode: () -> bool
+    def self.ap_active?: () -> bool
+    def self.ap_ssid: () -> (String | nil)
+    def self.ap_ipv4_address: () -> (String | nil)
+    def self.ap_ipv4_netmask: () -> (String | nil)
+  end
+end
