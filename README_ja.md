@@ -11,8 +11,9 @@ PicoRuby coreへpatchを当てる必要はありません。
 取得、およびDHCPだけです。
 
 Pico 2 W + mruby/c、Pico 2 W + mruby、Pico W + mruby/cでは、コンパイルと
-リンクを検証済みです。実機でのAP起動、DHCPアドレス割当、停止、再有効化は
-まだ検証していません。
+リンクを検証済みです。Pico 2 W + mruby/cの実機では、AP起動、クライアント
+からのSSID検出と接続、Ruby APIによる状態・IPv4情報取得、AP停止を確認済みです。
+DHCPで割り当てられたクライアントIPの確認と、APの再有効化は未検証です。
 
 ## R2P2への導入
 

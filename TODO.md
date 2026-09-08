@@ -18,7 +18,7 @@ This gem primarily provides the AP and DHCP foundation for the second use case.
 The user interface and HTTP communication belong to a later milestone. The
 existing STA use case must continue to work without regression.
 
-## Current state (2026-09-06)
+## Current state (2026-09-08)
 
 - This repository is the third-party `picoruby-cyw43-ap` mrbgem.
 - `main` tracks `origin/main` at `vestige/picoruby-cyw43-ap`.
@@ -26,7 +26,10 @@ existing STA use case must continue to work without regression.
 - The initial implementation includes the gem itself, English and Japanese
   documentation, type signature, and example.
 - Compilation and linking have been verified for all three target
-  configurations. AP and DHCP validation on hardware is not yet complete.
+  configurations. AP and DHCP validation on hardware is in progress.
+- On Pico 2 W with mruby/c, AP startup, client SSID discovery and connection,
+  Ruby API state and IPv4 inspection, and AP shutdown have been verified on
+  hardware.
 - PicoRuby core must not be patched to install this gem.
 - HTTP server and socket lifecycle work are outside the first AP/DHCP
   milestone.
@@ -54,9 +57,9 @@ existing STA use case must continue to work without regression.
 - [x] Compile and link Pico 2 W with mruby.
 - [x] Compile and link Pico W with mruby/c using
       `R2P2_NO_SHARED_ALLOC=1`.
-- [ ] On Pico W or Pico 2 W, start the AP and detect its SSID from a client.
+- [x] On Pico W or Pico 2 W, start the AP and detect its SSID from a client.
 - [ ] Obtain a client address by DHCP.
-- [ ] Verify `active?`, `ssid`, `ipv4_address`, and `ipv4_netmask` from Ruby.
+- [x] Verify `active?`, `ssid`, `ipv4_address`, and `ipv4_netmask` from Ruby.
 - [ ] Disable the AP and verify that the DHCP PCB and leases are released.
 - [ ] Enable the AP again after disabling it.
 - [ ] Verify cleanup during `CYW43.init(force: true)`.

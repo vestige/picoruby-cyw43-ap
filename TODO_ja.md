@@ -16,7 +16,7 @@
 このgemの主な役割は後者のAP/DHCP基盤を提供することです。実際の操作画面や
 HTTP通信は後続マイルストーンで扱い、既存のSTA用途を壊さないことも確認します。
 
-## 現在の状態（2026-09-06）
+## 現在の状態（2026-09-08）
 
 - このリポジトリは第三者mrbgem `picoruby-cyw43-ap` です。
 - `main` は `vestige/picoruby-cyw43-ap` の `origin/main` を追跡しています。
@@ -24,7 +24,9 @@ HTTP通信は後続マイルストーンで扱い、既存のSTA用途を壊さ�
 - 初回実装には、gem本体、英語・日本語ドキュメント、型シグネチャ、サンプルを
   含めます。
 - 対象3構成のコンパイルとリンクは検証済みです。実機でのAP/DHCP検証はまだ
-  完了していません。
+  進行中です。
+- Pico 2 W + mruby/cの実機で、AP起動、SSID検出、クライアント接続、Ruby API
+  による状態・IPv4情報取得、AP停止を確認済みです。
 - このgemを導入するためにPicoRuby coreを変更してはいけません。
 - HTTPサーバーとsocket lifecycleの作業は、最初のAP/DHCPマイルストーンの
   対象外です。
@@ -51,9 +53,9 @@ HTTP通信は後続マイルストーンで扱い、既存のSTA用途を壊さ�
 - [x] Pico 2 W + mrubyでコンパイルおよびリンクする。
 - [x] `R2P2_NO_SHARED_ALLOC=1` を使い、Pico W + mruby/cでコンパイルおよび
       リンクする。
-- [ ] Pico WまたはPico 2 WでAPを開始し、クライアントからSSIDを検出する。
+- [x] Pico WまたはPico 2 WでAPを開始し、クライアントからSSIDを検出する。
 - [ ] クライアントがDHCPでアドレスを取得することを確認する。
-- [ ] Rubyから `active?`、`ssid`、`ipv4_address`、`ipv4_netmask` を確認する。
+- [x] Rubyから `active?`、`ssid`、`ipv4_address`、`ipv4_netmask` を確認する。
 - [ ] APを停止し、DHCP PCBとleaseが解放されることを確認する。
 - [ ] AP停止後に再びAPを有効化できることを確認する。
 - [ ] `CYW43.init(force: true)` 実行時のcleanupを確認する。
