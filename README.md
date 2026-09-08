@@ -12,8 +12,11 @@ code. It only owns AP start/stop, AP state and IPv4 inspection, and DHCP.
 Compilation and linking have been verified for Pico 2 W with mruby/c, Pico 2 W
 with mruby, and Pico W with mruby/c. On Pico 2 W with mruby/c, AP startup,
 client SSID discovery and connection, Ruby API state and IPv4 inspection, and
-AP shutdown have been verified on hardware. Verification of the DHCP-assigned
-client address and AP re-enabling is still pending.
+AP shutdown have been verified on hardware. The client received
+`192.168.4.2/24` by DHCP with router `192.168.4.1`. During this validation, the
+client Wi-Fi settings screen continued to show a connecting indicator for
+about 10 seconds; the source of the delay is not yet known. AP re-enabling is
+still pending.
 
 ## Install in R2P2
 
