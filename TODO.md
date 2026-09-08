@@ -18,7 +18,7 @@ This gem primarily provides the AP and DHCP foundation for the second use case.
 The user interface and HTTP communication belong to a later milestone. The
 existing STA use case must continue to work without regression.
 
-## Current state (2026-09-08)
+## Current state (2026-09-09)
 
 - This repository is the third-party `picoruby-cyw43-ap` mrbgem.
 - `main` tracks `origin/main` at `vestige/picoruby-cyw43-ap`.
@@ -30,6 +30,10 @@ existing STA use case must continue to work without regression.
 - On Pico 2 W with mruby/c, AP startup, client SSID discovery and connection,
   Ruby API state and IPv4 inspection, and AP shutdown have been verified on
   hardware.
+- In the same hardware validation, the client received `192.168.4.2/24` by
+  DHCP with router `192.168.4.1`. The client Wi-Fi settings screen continued
+  to show a connecting indicator for about 10 seconds; the source of the delay
+  is not yet known.
 - PicoRuby core must not be patched to install this gem.
 - HTTP server and socket lifecycle work are outside the first AP/DHCP
   milestone.
@@ -58,7 +62,7 @@ existing STA use case must continue to work without regression.
 - [x] Compile and link Pico W with mruby/c using
       `R2P2_NO_SHARED_ALLOC=1`.
 - [x] On Pico W or Pico 2 W, start the AP and detect its SSID from a client.
-- [ ] Obtain a client address by DHCP.
+- [x] Obtain a client address by DHCP.
 - [x] Verify `active?`, `ssid`, `ipv4_address`, and `ipv4_netmask` from Ruby.
 - [ ] Disable the AP and verify that the DHCP PCB and leases are released.
 - [ ] Enable the AP again after disabling it.
