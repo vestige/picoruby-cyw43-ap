@@ -15,10 +15,13 @@ client SSID discovery and connection, Ruby API state and IPv4 inspection, and
 AP shutdown have been verified on hardware. The client received
 `192.168.4.2/24` by DHCP with router `192.168.4.1`. During this validation, the
 client Wi-Fi settings screen continued to show a connecting indicator for
-about 10 seconds; the source of the delay is not yet known. AP re-enabling is
-still pending. A code audit verified that AP shutdown removes and clears the
-DHCP PCB reference and erases the lease array. Hardware validation also
-confirmed the inactive API state and disappearance of the SSID after shutdown.
+about 10 seconds; the source of the delay is not yet known. A code audit
+verified that AP shutdown removes and clears the DHCP PCB reference and erases
+the lease array. Hardware validation also confirmed the inactive API state and
+disappearance of the SSID after shutdown.
+Without rebooting the Pico, the AP was then re-enabled and the client
+reconnected with the same DHCP settings. The second connection completed
+faster than the first, but the source of that difference is not yet known.
 
 ## Install in R2P2
 
