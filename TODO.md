@@ -34,6 +34,9 @@ existing STA use case must continue to work without regression.
   DHCP with router `192.168.4.1`. The client Wi-Fi settings screen continued
   to show a connecting indicator for about 10 seconds; the source of the delay
   is not yet known.
+- A code audit of the AP shutdown path verified removal and clearing of the
+  DHCP PCB reference and erasure of the lease array. Hardware validation
+  confirmed the inactive API state and disappearance of the SSID.
 - PicoRuby core must not be patched to install this gem.
 - HTTP server and socket lifecycle work are outside the first AP/DHCP
   milestone.
@@ -64,7 +67,7 @@ existing STA use case must continue to work without regression.
 - [x] On Pico W or Pico 2 W, start the AP and detect its SSID from a client.
 - [x] Obtain a client address by DHCP.
 - [x] Verify `active?`, `ssid`, `ipv4_address`, and `ipv4_netmask` from Ruby.
-- [ ] Disable the AP and verify that the DHCP PCB and leases are released.
+- [x] Disable the AP and verify that the DHCP PCB and leases are released.
 - [ ] Enable the AP again after disabling it.
 - [ ] Verify cleanup during `CYW43.init(force: true)`.
 - [ ] Check that an existing STA-only program still behaves as before.

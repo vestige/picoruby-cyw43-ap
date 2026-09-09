@@ -16,7 +16,9 @@ AP shutdown have been verified on hardware. The client received
 `192.168.4.2/24` by DHCP with router `192.168.4.1`. During this validation, the
 client Wi-Fi settings screen continued to show a connecting indicator for
 about 10 seconds; the source of the delay is not yet known. AP re-enabling is
-still pending.
+still pending. A code audit verified that AP shutdown removes and clears the
+DHCP PCB reference and erases the lease array. Hardware validation also
+confirmed the inactive API state and disappearance of the SSID after shutdown.
 
 ## Install in R2P2
 
