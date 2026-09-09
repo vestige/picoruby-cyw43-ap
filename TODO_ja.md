@@ -34,6 +34,9 @@ HTTP通信は後続マイルストーンで扱い、既存のSTA用途を壊さ�
   確認済みです。実機では停止後のAPI状態とSSID消失を確認済みです。
 - Picoを再起動せずにAPを再有効化し、クライアントの再接続と同じDHCP設定の
   取得を確認済みです。2回目の接続は1回目より速く、差の原因は未特定です。
+- Pico 2 W + mruby/cの実機で、AP稼働中のforce initによる停止・driver再初期化と、
+  その後のAP再有効化・DHCP再取得を確認済みです。mruby/cとmrubyの両bindingで
+  force init前のcleanup経路を監査済みです。
 - このgemを導入するためにPicoRuby coreを変更してはいけません。
 - HTTPサーバーとsocket lifecycleの作業は、最初のAP/DHCPマイルストーンの
   対象外です。
@@ -65,7 +68,7 @@ HTTP通信は後続マイルストーンで扱い、既存のSTA用途を壊さ�
 - [x] Rubyから `active?`、`ssid`、`ipv4_address`、`ipv4_netmask` を確認する。
 - [x] APを停止し、DHCP PCBとleaseが解放されることを確認する。
 - [x] AP停止後に再びAPを有効化できることを確認する。
-- [ ] `CYW43.init(force: true)` 実行時のcleanupを確認する。
+- [x] `CYW43.init(force: true)` 実行時のcleanupを確認する。
 - [ ] 既存のSTA専用プログラムが以前と同じように動作することを確認する。
 
 基板、BOOTSELボリューム、シリアルデバイス、シリアルポートの所有プロセスを

@@ -21,7 +21,11 @@ the lease array. Hardware validation also confirmed the inactive API state and
 disappearance of the SSID after shutdown.
 Without rebooting the Pico, the AP was then re-enabled and the client
 reconnected with the same DHCP settings. The second connection completed
-faster than the first, but the source of that difference is not yet known.
+faster than the first, but the source of that difference is not yet known. On
+Pico 2 W with mruby/c, `CYW43.init("JP", force: true)` while the AP was active
+shut it down, reinitialized the driver, and allowed AP and DHCP reuse. The
+pre-force-init cleanup paths have been audited in both mruby/c and mruby
+bindings.
 
 ## Install in R2P2
 

@@ -40,6 +40,9 @@ existing STA use case must continue to work without regression.
 - Without rebooting the Pico, the AP was re-enabled and the client reconnected
   with the same DHCP settings. The second connection completed faster than
   the first, but the source of the difference is not yet known.
+- On Pico 2 W with mruby/c, force init while the AP was active shut it down,
+  reinitialized the driver, and allowed the AP and DHCP to be reused. The
+  pre-force-init cleanup paths were audited in both mruby/c and mruby bindings.
 - PicoRuby core must not be patched to install this gem.
 - HTTP server and socket lifecycle work are outside the first AP/DHCP
   milestone.
@@ -72,7 +75,7 @@ existing STA use case must continue to work without regression.
 - [x] Verify `active?`, `ssid`, `ipv4_address`, and `ipv4_netmask` from Ruby.
 - [x] Disable the AP and verify that the DHCP PCB and leases are released.
 - [x] Enable the AP again after disabling it.
-- [ ] Verify cleanup during `CYW43.init(force: true)`.
+- [x] Verify cleanup during `CYW43.init(force: true)`.
 - [ ] Check that an existing STA-only program still behaves as before.
 
 Do not flash hardware unless the board, BOOTSEL volume, serial device, and

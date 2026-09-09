@@ -21,6 +21,9 @@ AP停止時にDHCP PCBを削除して参照を破棄し、lease配列を消去�
 からSSIDが検出されなくなることを確認済みです。さらに、Picoを再起動せずに
 APを再有効化し、クライアントが再接続して同じDHCP設定を取得できることも確認
 済みです。2回目の接続は1回目より速く完了しましたが、差の原因は未特定です。
+Pico 2 W + mruby/cでは、AP稼働中の `CYW43.init("JP", force: true)` がAPを
+停止してdriverを再初期化し、その後APとDHCPを再利用できることも実機確認済み
+です。mruby/cとmrubyの両bindingで、force init前にcleanupする経路を監査済みです。
 
 ## R2P2への導入
 
