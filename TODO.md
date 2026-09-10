@@ -43,6 +43,10 @@ existing STA use case must continue to work without regression.
 - On Pico 2 W with mruby/c, force init while the AP was active shut it down,
   reinitialized the driver, and allowed the AP and DHCP to be reused. The
   pre-force-init cleanup paths were audited in both mruby/c and mruby bindings.
+- On the same firmware, an STA-only connection reached `LINK_UP` with assigned
+  IPv4 settings while the AP remained inactive, then returned to `LINK_DOWN`
+  after disconnecting. Only encrypted device-local connection settings were
+  used, and no connection details were recorded.
 - PicoRuby core must not be patched to install this gem.
 - HTTP server and socket lifecycle work are outside the first AP/DHCP
   milestone.
@@ -76,7 +80,7 @@ existing STA use case must continue to work without regression.
 - [x] Disable the AP and verify that the DHCP PCB and leases are released.
 - [x] Enable the AP again after disabling it.
 - [x] Verify cleanup during `CYW43.init(force: true)`.
-- [ ] Check that an existing STA-only program still behaves as before.
+- [x] Check that an existing STA-only program still behaves as before.
 
 Do not flash hardware unless the board, BOOTSEL volume, serial device, and
 serial-port owner have been identified unambiguously. Keep validation-only

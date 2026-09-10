@@ -26,6 +26,11 @@ Pico 2 W with mruby/c, `CYW43.init("JP", force: true)` while the AP was active
 shut it down, reinitialized the driver, and allowed AP and DHCP reuse. The
 pre-force-init cleanup paths have been audited in both mruby/c and mruby
 bindings.
+An STA-only connection was also verified on the same Pico 2 W with mruby/c
+firmware without starting the AP. STA reached `LINK_UP` with assigned IPv4
+settings while `CYW43::AP` remained inactive, then returned to `LINK_DOWN`
+after disconnecting. The connection details were used only from encrypted
+device-local configuration and are not included in the validation record.
 
 ## Install in R2P2
 
