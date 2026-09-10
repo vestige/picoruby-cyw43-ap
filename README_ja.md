@@ -24,6 +24,10 @@ APを再有効化し、クライアントが再接続して同じDHCP設定を�
 Pico 2 W + mruby/cでは、AP稼働中の `CYW43.init("JP", force: true)` がAPを
 停止してdriverを再初期化し、その後APとDHCPを再利用できることも実機確認済み
 です。mruby/cとmrubyの両bindingで、force init前にcleanupする経路を監査済みです。
+同じPico 2 W + mruby/c firmwareで、APを起動しないSTA専用接続も実機確認済み
+です。STAは `LINK_UP` となってIPv4設定を取得し、その間も `CYW43::AP` は
+inactiveのままで、STA切断後は `LINK_DOWN` になりました。接続情報は端末内の
+暗号化設定だけを使用し、検証記録には含めていません。
 
 ## R2P2への導入
 
