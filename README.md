@@ -85,6 +85,23 @@ puts CYW43::AP.ipv4_netmask  # 255.255.255.0
 CYW43::AP.disable
 ```
 
+### Minimal HTTP server example
+
+[`example/pico_w_ap_http_server.rb`](example/pico_w_ap_http_server.rb) is a
+minimal HTTP server that returns plain text to a browser connected to the AP.
+The example also requires `picoruby-socket`. Add both this gem and
+`picoruby-socket` to the build configuration, then load `cyw43`, `cyw43/ap`,
+and `socket` at runtime.
+
+The example's `SSID` and `PASSWORD` are public sample values. Change them on
+the device when necessary, and do not commit real credentials to Git. After
+startup, open the displayed URL in a browser on a device connected to the AP.
+The example closes the client socket after each response and closes the server
+socket and disables the AP when it exits.
+
+On Pico 2 W with mruby/c, the example was verified to return its plain-text
+response to a browser and to leave the AP inactive after a clean Ctrl-C exit.
+
 The password must contain 8 through 63 bytes and the SSID must contain 1
 through 32 bytes. WPA2/AES PSK is the default authentication mode. An explicit
 Pico SDK authentication value may be supplied as the third argument.

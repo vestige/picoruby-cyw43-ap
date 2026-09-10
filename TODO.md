@@ -18,7 +18,7 @@ This gem primarily provides the AP and DHCP foundation for the second use case.
 The user interface and HTTP communication belong to a later milestone. The
 existing STA use case must continue to work without regression.
 
-## Current state (2026-09-09)
+## Current state (2026-09-11)
 
 - This repository is the third-party `picoruby-cyw43-ap` mrbgem.
 - `main` tracks `origin/main` at `vestige/picoruby-cyw43-ap`.
@@ -47,6 +47,9 @@ existing STA use case must continue to work without regression.
   IPv4 settings while the AP remained inactive, then returned to `LINK_DOWN`
   after disconnecting. Only encrypted device-local connection settings were
   used, and no connection details were recorded.
+- A minimal HTTP server example outside PicoRuby core returned its plain-text
+  response to a browser on Pico 2 W with mruby/c and left the AP inactive after
+  a clean Ctrl-C exit.
 - PicoRuby core must not be patched to install this gem.
 - HTTP server and socket lifecycle work are outside the first AP/DHCP
   milestone.
@@ -90,7 +93,7 @@ PicoRuby build configuration changes in a temporary worktree.
 
 Start this only after the AP/DHCP milestone is stable:
 
-- [ ] Add a minimal HTTP-server example outside PicoRuby core.
+- [x] Add a minimal HTTP-server example outside PicoRuby core.
 - [ ] Test repeated `accept`, `recv`, and `close` lifecycles.
 - [ ] Test refreshes, multiple tabs, reconnects, and client Wi-Fi recovery.
 - [ ] Revisit the Pico Timer application and browser-facing behavior.
