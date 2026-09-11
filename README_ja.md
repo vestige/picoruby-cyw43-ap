@@ -98,6 +98,14 @@ APへ接続した端末のブラウザで開きます。例は各HTTP応答後�
 Pico 2 W + mruby/cの実機で、ブラウザにplain textの応答が表示されることと、
 Ctrl-C終了後に例外を出さずAPがinactiveになることを確認済みです。
 
+同じAP・server instanceに対する20回の逐次HTTP requestも実機確認済みです。
+20回すべてで期待するstatus、Content-Length、本文を受信し、各client socketを
+closeした後、APは自動停止しました。一方、20接続後にAPとserverを停止すると、
+2分以上待っても同じportへ再bindできず、Picoの再起動後に解消しました。また、
+`TCPServer#accept` の待受中にCtrl-Cを送ると、serverを閉じた後の内部処理から
+`server is not initialized` が発生します。これらはPicoRuby socket側のlifecycle
+課題としてIssue #16で後続対応します。
+
 passwordは8〜63バイト、SSIDは1〜32バイトでなければなりません。デフォルトの
 認証方式はWPA2/AES PSKです。第3引数へPico SDKの認証値を明示的に渡すことも
 できます。

@@ -42,6 +42,10 @@ HTTP通信は後続マイルストーンで扱い、既存のSTA用途を壊さ�
   です。接続情報は暗号化された端末内設定だけを使用し、記録していません。
 - PicoRuby core外の最小HTTPサーバー例を追加し、Pico 2 W + mruby/c実機で
   ブラウザへのplain text応答と、Ctrl-C終了後のAP停止を確認済みです。
+- 同じAP・HTTP serverで20回の逐次request、response、client closeに成功しました。
+  ただし、停止後に同じportを再利用するにはPicoの再起動が必要で、待受中の
+  Ctrl-Cでは `TCPServer#accept` 由来の終了例外が発生することを確認しました。
+  いずれもPicoRuby socket側の後続課題としてIssue #16で追跡します。
 - このgemを導入するためにPicoRuby coreを変更してはいけません。
 - HTTPサーバーとsocket lifecycleの作業は、最初のAP/DHCPマイルストーンの
   対象外です。
@@ -85,7 +89,7 @@ build config変更は、一時worktree内だけに保持します。
 AP/DHCPマイルストーンが安定してから開始します。
 
 - [x] PicoRuby coreの外部に最小構成のHTTPサーバー例を追加する。
-- [ ] `accept`、`recv`、`close` の繰り返しlifecycleをテストする。
+- [x] `accept`、`recv`、`close` の繰り返しlifecycleをテストする。
 - [ ] リロード、複数タブ、再接続、クライアントWi-Fiの復旧をテストする。
 - [ ] Pico Timerアプリケーションとブラウザ向け動作を再検討する。
 
