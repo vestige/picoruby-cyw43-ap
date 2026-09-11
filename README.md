@@ -102,6 +102,16 @@ socket and disables the AP when it exits.
 On Pico 2 W with mruby/c, the example was verified to return its plain-text
 response to a browser and to leave the AP inactive after a clean Ctrl-C exit.
 
+Twenty sequential HTTP requests to the same AP and server instance were also
+verified on hardware. All responses had the expected status, Content-Length,
+and body; each client socket was closed, and the AP stopped afterward. Two
+PicoRuby socket lifecycle limitations were observed: after the 20 connections,
+the same port could not be rebound even after waiting more than two minutes and
+became available after rebooting the Pico; and interrupting
+`TCPServer#accept` with Ctrl-C closes the server before its internal next
+nonblocking accept raises `server is not initialized`. These are follow-up
+socket lifecycle issues tracked in Issue #16.
+
 The password must contain 8 through 63 bytes and the SSID must contain 1
 through 32 bytes. WPA2/AES PSK is the default authentication mode. An explicit
 Pico SDK authentication value may be supplied as the third argument.

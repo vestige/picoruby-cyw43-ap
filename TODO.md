@@ -50,6 +50,11 @@ existing STA use case must continue to work without regression.
 - A minimal HTTP server example outside PicoRuby core returned its plain-text
   response to a browser on Pico 2 W with mruby/c and left the AP inactive after
   a clean Ctrl-C exit.
+- Twenty sequential requests, responses, and client closes succeeded on the
+  same AP and HTTP server. Rebinding the same port after shutdown still
+  required rebooting the Pico, and interrupting a waiting `TCPServer#accept`
+  produced its existing shutdown exception. Both are PicoRuby socket follow-up
+  issues tracked in Issue #16.
 - PicoRuby core must not be patched to install this gem.
 - HTTP server and socket lifecycle work are outside the first AP/DHCP
   milestone.
@@ -94,7 +99,7 @@ PicoRuby build configuration changes in a temporary worktree.
 Start this only after the AP/DHCP milestone is stable:
 
 - [x] Add a minimal HTTP-server example outside PicoRuby core.
-- [ ] Test repeated `accept`, `recv`, and `close` lifecycles.
+- [x] Test repeated `accept`, `recv`, and `close` lifecycles.
 - [ ] Test refreshes, multiple tabs, reconnects, and client Wi-Fi recovery.
 - [ ] Revisit the Pico Timer application and browser-facing behavior.
 
