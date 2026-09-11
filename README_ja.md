@@ -83,6 +83,21 @@ puts CYW43::AP.ipv4_netmask  # 255.255.255.0
 CYW43::AP.disable
 ```
 
+### 最小HTTPサーバー例
+
+[`example/pico_w_ap_http_server.rb`](example/pico_w_ap_http_server.rb) は、APへ
+接続したブラウザへplain textを返す最小構成のHTTPサーバーです。この例には
+`picoruby-socket` も必要です。build configへこのgemと `picoruby-socket` の両方を
+追加し、実行時に `cyw43`、`cyw43/ap`、`socket` を読み込んでください。
+
+例の `SSID` と `PASSWORD` は公開用のサンプル値です。必要に応じて端末上で変更し、
+実際に使用する認証情報をGitへcommitしないでください。起動後、表示されたURLを
+APへ接続した端末のブラウザで開きます。例は各HTTP応答後にclient socketを閉じ、
+終了時にはserver socketとAPを停止します。
+
+Pico 2 W + mruby/cの実機で、ブラウザにplain textの応答が表示されることと、
+Ctrl-C終了後に例外を出さずAPがinactiveになることを確認済みです。
+
 passwordは8〜63バイト、SSIDは1〜32バイトでなければなりません。デフォルトの
 認証方式はWPA2/AES PSKです。第3引数へPico SDKの認証値を明示的に渡すことも
 できます。
