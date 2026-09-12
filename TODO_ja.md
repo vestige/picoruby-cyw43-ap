@@ -5,6 +5,9 @@
 `TODO.md` とこの日本語版を同時に更新します。今後の進め方や方針は、まず
 この日本語版で確認してから作業します。
 
+GitHub上のIssue、PRのタイトル・本文、検証コメントは原則として日本語で記載
+します。commit messageは、既存の履歴に合わせて英語を使用します。
+
 ## 想定しているユースケース
 
 - Raspberry Pi Picoを屋外へ持ち出し、スマホのテザリングなど既存の
@@ -46,6 +49,26 @@ HTTP通信は後続マイルストーンで扱い、既存のSTA用途を壊さ�
   ただし、停止後に同じportを再利用するにはPicoの再起動が必要で、待受中の
   Ctrl-Cでは `TCPServer#accept` 由来の終了例外が発生することを確認しました。
   いずれもPicoRuby socket側の後続課題としてIssue #16で追跡します。
+- Issue #16の切り分けで、client接続がなければAPの再起動後も同じportへ即座に
+  再bindできる一方、APを停止せず1件だけacceptしてclientとserverをcloseすると
+  再bindに失敗することを確認しました。現在の `picoruby-socket` はlistenerへ
+  `SOF_REUSEADDR` を設定しますが、PicoRuby用 `lwipopts.h` では `SO_REUSE` が
+  有効化されておらず、lwIPのTIME_WAIT再利用処理はコンパイルされません。
+  一時worktreeで `SO_REUSE=1` だけを有効にした比較用firmwareでは、同じ1接続後の
+  即時再bindに成功しました。さらに、1接続ごとにclientとserverをcloseして
+  同一portへ再bindする処理を10回連続で実行し、10回すべて成功しました。
+  この実機比較により、再bind失敗の原因を確認済みです。さらにPicoRuby最新
+  upstream `80efbea3` でも、未適用firmwareでは同じ1接続後の即時再bindが失敗し、
+  `SO_REUSE=1` だけを適用したfirmwareでは成功することをPico 2 W + mruby実機で
+  再確認しました。
+- 同じ `SO_REUSE=1` の比較用firmwareでも、`TCPServer#accept` 待受中のCtrl-C後に
+  `server is not initialized` が発生しました。`ensure` によるAP停止は成功し、
+  `active?` はfalseでした。この終了例外は再bind問題とは独立した課題です。
+  mruby版でも1接続後の即時再bindに成功し、Ctrl-C時にはcleanup内のserver再closeで
+  `server is not initialized`、割り込み終了時に `Already stopped` が発生しました。
+  AP cleanupは成功しており、再bind修正とCtrl-C課題のどちらもbinding固有では
+  ありません。最初のmruby版接続ではクライアントWi-Fiが一度切れましたが、再試行
+  ではHTTP応答と再bindに成功し、この切断は再現していません。
 - このgemを導入するためにPicoRuby coreを変更してはいけません。
 - HTTPサーバーとsocket lifecycleの作業は、最初のAP/DHCPマイルストーンの
   対象外です。

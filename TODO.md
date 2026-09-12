@@ -4,6 +4,10 @@ This document records the development state and the work that must remain
 separate from PicoRuby core. Update it when a milestone or validation result
 changes.
 
+GitHub Issue and pull request titles, descriptions, and validation comments
+are written in Japanese by default. Commit messages remain in English to match
+the existing history.
+
 ## Intended use cases
 
 - Take a Raspberry Pi Pico outdoors, connect it as a station to an existing
@@ -55,6 +59,29 @@ existing STA use case must continue to work without regression.
   required rebooting the Pico, and interrupting a waiting `TCPServer#accept`
   produced its existing shutdown exception. Both are PicoRuby socket follow-up
   issues tracked in Issue #16.
+- Issue #16 isolation showed that the same port can be rebound immediately
+  after an AP restart when no client has connected. With the AP left active,
+  accepting and closing only one client before closing the server makes the
+  rebind fail. The current `picoruby-socket` sets `SOF_REUSEADDR` on the
+  listener, but PicoRuby's `lwipopts.h` does not enable `SO_REUSE`, so lwIP's
+  TIME_WAIT reuse paths are not compiled. A comparison firmware enabling only
+  `SO_REUSE=1` in a temporary worktree successfully rebound immediately after
+  the same one-client sequence. Ten consecutive cycles, each accepting and
+  closing one client, closing the server, and rebinding the same port, all
+  passed. This comparison confirms the cause on hardware. The same A/B result
+  was reproduced on PicoRuby upstream `80efbea3` with Pico 2 W and mruby: the
+  unmodified firmware failed the immediate rebind after one client, while the
+  firmware enabling only `SO_REUSE=1` passed.
+- With the same `SO_REUSE=1` comparison firmware, Ctrl-C while waiting in
+  `TCPServer#accept` still produced `server is not initialized`. The `ensure`
+  cleanup did disable the AP and `active?` was false, confirming that this
+  shutdown exception is independent of the rebind issue. The mruby build also
+  rebound immediately after one connection. Its Ctrl-C path reported
+  `server is not initialized` while closing the already-closed server during
+  cleanup, followed by `Already stopped`; AP cleanup still succeeded. Neither
+  behavior is binding-specific. The first mruby client connection dropped its
+  Wi-Fi connection once, but a retry completed the HTTP response and rebind,
+  so the drop has not been reproduced.
 - PicoRuby core must not be patched to install this gem.
 - HTTP server and socket lifecycle work are outside the first AP/DHCP
   milestone.
