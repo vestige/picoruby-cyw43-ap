@@ -125,6 +125,16 @@ Intermittent script-rerun instability observed on both baseline and modified
 mruby/c firmware is tracked separately in Core
 [Issue #510](https://github.com/picoruby/picoruby/issues/510).
 
+On Pico 2 W with mruby/c and Core commit `95bf98ac` from PR #509, 21
+sequential browser reloads in the same tab completed immediately with the
+expected response. The original example could block in `client.gets` on an
+additional connection opened by the browser and did not consume the complete
+HTTP request header. The example now reads through the header terminator with
+nonblocking reads, rejects headers larger than 4 KiB, and closes an incomplete
+client after a 5-second timeout. After the 21 requests, Ctrl-C stopped the
+server, disabled the AP, and returned to the shell without a cleanup error.
+An independent status check reported the AP inactive and its SSID cleared.
+
 The password must contain 8 through 63 bytes and the SSID must contain 1
 through 32 bytes. WPA2/AES PSK is the default authentication mode. An explicit
 Pico SDK authentication value may be supplied as the third argument.

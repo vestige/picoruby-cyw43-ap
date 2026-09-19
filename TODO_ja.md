@@ -125,10 +125,12 @@ AP/DHCPマイルストーンが安定してから開始します。
 - [x] PicoRuby coreの外部に最小構成のHTTPサーバー例を追加する。
 - [x] `accept`、`recv`、`close` の繰り返しlifecycleをテストする。
 - [ ] リロード、複数タブ、再接続、クライアントWi-Fiの復旧をテストする。
-      まず別Issue・ブランチでPico 2 W + mruby/cのブラウザから逐次リロードする
-      検証に絞ります。Coreのrevisionと#509適用有無を記録し、応答内容、サービス
-      継続、`Interrupt` をrescueするCtrl-C終了後のserver/AP cleanupを確認します。
-      最初は同時タブやWi-Fi復旧を含めず、結果確認後に範囲を広げます。
+      - [x] PR #509のCore `95bf98ac` を使い、Pico 2 W + mruby/cで逐次リロードを
+        検証しました。blockingな `gets` を上限付きnonblocking header readへ変更後、
+        同じタブから21回すべて期待した応答を受信し、socketエラーはありませんでした。
+        Ctrl-C後にAP停止とシェル復帰、別確認でinactive・SSID nilを確認しました。
+      - [ ] 複数タブとブラウザからの同時接続を検証する。
+      - [ ] 再接続とクライアントWi-Fiの復旧を検証する。
 - [ ] Pico Timerアプリケーションとブラウザ向け動作を再検討する。
 
 ## PicoRuby coreの参照情報
