@@ -104,7 +104,18 @@ closeした後、APは自動停止しました。一方、20接続後にAPとser
 2分以上待っても同じportへ再bindできず、Picoの再起動後に解消しました。また、
 `TCPServer#accept` の待受中にCtrl-Cを送ると、serverを閉じた後の内部処理から
 `server is not initialized` が発生します。これらはPicoRuby socket側のlifecycle
-課題としてIssue #16で後続対応します。
+観測としてIssue #16で追跡しました。上記のエラーは当時のfirmwareでの観測であり、
+後続修正の検証結果ではありません。
+
+同じportへの再bind修正はCoreの [PR #506](https://github.com/picoruby/picoruby/pull/506)
+でマージ済みです。待受中のCtrl-Cとserverの安全な再closeを扱う
+[PR #509](https://github.com/picoruby/picoruby/pull/509) は、2026-09-16時点で
+未マージですが、CIの4項目はすべて成功しています。修正版firmwareでは、
+Pico 2 Wのmruby/c・mruby両方で、テストが `Interrupt` をrescueした場合に
+server/APのcleanupとシェル復帰を確認しました。APはinactiveで、server cleanup
+エラーもありませんでした。リリース版や未修正upstreamでの成功を意味するものではありません。
+修正前後のmruby/c firmwareで観測した断続的なスクリプト再実行時の不安定さは、
+Coreの [Issue #510](https://github.com/picoruby/picoruby/issues/510) で別途追跡します。
 
 passwordは8〜63バイト、SSIDは1〜32バイトでなければなりません。デフォルトの
 認証方式はWPA2/AES PSKです。第3引数へPico SDKの認証値を明示的に渡すことも

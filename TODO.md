@@ -82,6 +82,17 @@ existing STA use case must continue to work without regression.
   behavior is binding-specific. The first mruby client connection dropped its
   Wi-Fi connection once, but a retry completed the HTTP response and rebind,
   so the drop has not been reproduced.
+- Core follow-up status (2026-09-16): [PR #506](https://github.com/picoruby/picoruby/pull/506)
+  merged the rebind fix. [PR #509](https://github.com/picoruby/picoruby/pull/509)
+  is open, not merged; all four CI checks passed. Its commit `95bf98ac` stops
+  accept after interruption, restores the INT handler, and makes mruby server
+  close idempotent. Socket tests passed 57/57 on both VMs, and Steep passed.
+  On Pico 2 W with both VMs, a test rescuing `Interrupt` confirmed cleanup,
+  AP inactive, and shell return without server lifecycle errors. The earlier
+  error observations above are historical, not the modified firmware results.
+- Intermittent rerun instability of an AP/socket-free script was observed on
+  baseline and modified mruby/c firmware. Its cause is unknown and is tracked
+  separately in [Core #510](https://github.com/picoruby/picoruby/issues/510).
 - PicoRuby core must not be patched to install this gem.
 - HTTP server and socket lifecycle work are outside the first AP/DHCP
   milestone.
@@ -128,6 +139,11 @@ Start this only after the AP/DHCP milestone is stable:
 - [x] Add a minimal HTTP-server example outside PicoRuby core.
 - [x] Test repeated `accept`, `recv`, and `close` lifecycles.
 - [ ] Test refreshes, multiple tabs, reconnects, and client Wi-Fi recovery.
+      Start with sequential browser refreshes in a separate Issue/branch on
+      Pico 2 W + mruby/c. Record the Core revision and whether #509 is applied;
+      check response contents, continued service, and server/AP cleanup after
+      Ctrl-C with `Interrupt` rescued. Do not include concurrent tabs or Wi-Fi
+      recovery in this first step; review the result before expanding scope.
 - [ ] Revisit the Pico Timer application and browser-facing behavior.
 
 ## PicoRuby core references
