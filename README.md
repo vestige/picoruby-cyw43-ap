@@ -110,7 +110,20 @@ the same port could not be rebound even after waiting more than two minutes and
 became available after rebooting the Pico; and interrupting
 `TCPServer#accept` with Ctrl-C closes the server before its internal next
 nonblocking accept raises `server is not initialized`. These are follow-up
-socket lifecycle issues tracked in Issue #16.
+socket lifecycle observations tracked in Issue #16; the errors above describe
+the firmware used at that time, not the result of the later fixes.
+
+Core [PR #506](https://github.com/picoruby/picoruby/pull/506) merged the
+same-port rebind fix. Core [PR #509](https://github.com/picoruby/picoruby/pull/509)
+addresses Ctrl-C during `accept` and safe repeated server close. As of
+2026-09-16, #509 is open (not merged), with all four CI checks passing.
+On Pico 2 W with both mruby/c and mruby, its modified firmware completed
+server/AP cleanup and returned to the shell when the test rescued `Interrupt`;
+the AP was inactive and no server cleanup error appeared. This is not yet a
+claim about released or unmodified upstream firmware.
+Intermittent script-rerun instability observed on both baseline and modified
+mruby/c firmware is tracked separately in Core
+[Issue #510](https://github.com/picoruby/picoruby/issues/510).
 
 The password must contain 8 through 63 bytes and the SSID must contain 1
 through 32 bytes. WPA2/AES PSK is the default authentication mode. An explicit

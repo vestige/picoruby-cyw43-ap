@@ -69,6 +69,17 @@ HTTP通信は後続マイルストーンで扱い、既存のSTA用途を壊さ�
   AP cleanupは成功しており、再bind修正とCtrl-C課題のどちらもbinding固有では
   ありません。最初のmruby版接続ではクライアントWi-Fiが一度切れましたが、再試行
   ではHTTP応答と再bindに成功し、この切断は再現していません。
+- Core後続対応の状況（2026-09-16）：再bind修正の
+  [PR #506](https://github.com/picoruby/picoruby/pull/506) はマージ済みです。
+  [PR #509](https://github.com/picoruby/picoruby/pull/509) は未マージで、CIの4項目は
+  すべて成功しています。コミット `95bf98ac` は割り込み後のacceptを止め、
+  INT handlerを復元し、mrubyのserver closeを二重実行しても安全にします。
+  socketテストは両VMで57/57成功、Steepも成功しました。Pico 2 Wの両VMでは、
+  `Interrupt` をrescueするテストでcleanup、AP inactive、シェル復帰を確認し、
+  server lifecycleエラーはありませんでした。上記のエラー記録は修正前の観測です。
+- AP/socketを使わないスクリプトの再実行時の断続的な不安定さは、修正前後の
+  mruby/c firmwareで観測しています。原因は未特定で、
+  [Core #510](https://github.com/picoruby/picoruby/issues/510) で別途追跡します。
 - このgemを導入するためにPicoRuby coreを変更してはいけません。
 - HTTPサーバーとsocket lifecycleの作業は、最初のAP/DHCPマイルストーンの
   対象外です。
@@ -114,6 +125,10 @@ AP/DHCPマイルストーンが安定してから開始します。
 - [x] PicoRuby coreの外部に最小構成のHTTPサーバー例を追加する。
 - [x] `accept`、`recv`、`close` の繰り返しlifecycleをテストする。
 - [ ] リロード、複数タブ、再接続、クライアントWi-Fiの復旧をテストする。
+      まず別Issue・ブランチでPico 2 W + mruby/cのブラウザから逐次リロードする
+      検証に絞ります。Coreのrevisionと#509適用有無を記録し、応答内容、サービス
+      継続、`Interrupt` をrescueするCtrl-C終了後のserver/AP cleanupを確認します。
+      最初は同時タブやWi-Fi復旧を含めず、結果確認後に範囲を広げます。
 - [ ] Pico Timerアプリケーションとブラウザ向け動作を再検討する。
 
 ## PicoRuby coreの参照情報
