@@ -139,11 +139,13 @@ Start this only after the AP/DHCP milestone is stable:
 - [x] Add a minimal HTTP-server example outside PicoRuby core.
 - [x] Test repeated `accept`, `recv`, and `close` lifecycles.
 - [ ] Test refreshes, multiple tabs, reconnects, and client Wi-Fi recovery.
-      Start with sequential browser refreshes in a separate Issue/branch on
-      Pico 2 W + mruby/c. Record the Core revision and whether #509 is applied;
-      check response contents, continued service, and server/AP cleanup after
-      Ctrl-C with `Interrupt` rescued. Do not include concurrent tabs or Wi-Fi
-      recovery in this first step; review the result before expanding scope.
+      - [x] Test sequential browser refreshes on Pico 2 W + mruby/c with Core
+        `95bf98ac` from #509. After replacing blocking `gets` with bounded
+        nonblocking header reads, 21 same-tab reloads completed with the
+        expected response and no socket error. Ctrl-C cleanup disabled the AP
+        and returned to the shell; a separate check reported inactive/nil.
+      - [ ] Test multiple tabs and concurrent browser connections.
+      - [ ] Test reconnects and client Wi-Fi recovery.
 - [ ] Revisit the Pico Timer application and browser-facing behavior.
 
 ## PicoRuby core references

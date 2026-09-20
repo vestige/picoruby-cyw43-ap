@@ -117,6 +117,14 @@ server/APのcleanupとシェル復帰を確認しました。APはinactiveで、
 修正前後のmruby/c firmwareで観測した断続的なスクリプト再実行時の不安定さは、
 Coreの [Issue #510](https://github.com/picoruby/picoruby/issues/510) で別途追跡します。
 
+Pico 2 W + mruby/cと、PR #509のCoreコミット `95bf98ac` を使い、同じブラウザ・
+同じタブから21回逐次リロードしました。すべて期待した応答がすぐに表示されました。
+修正前の例は、HTTP request headerを最後まで読まず、ブラウザが自動で開いた追加接続の
+`client.gets` で停止する場合がありました。現在の例はnonblocking readでheader終端まで
+読み、4 KiBを超えるheaderを拒否し、未完了のclientを5秒でtimeoutして閉じます。
+21回の応答後、Ctrl-Cでserver停止、AP無効化、シェル復帰をcleanupエラーなしで確認
+しました。別の状態確認でもAPはinactive、SSIDはnilでした。
+
 passwordは8〜63バイト、SSIDは1〜32バイトでなければなりません。デフォルトの
 認証方式はWPA2/AES PSKです。第3引数へPico SDKの認証値を明示的に渡すことも
 できます。
