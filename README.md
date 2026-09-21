@@ -135,6 +135,20 @@ client after a 5-second timeout. After the 21 requests, Ctrl-C stopped the
 server, disabled the AP, and returned to the shell without a cleanup error.
 An independent status check reported the AP inactive and its SSID cleared.
 
+[`example/pico_w_ap_http_concurrent_test.rb`](example/pico_w_ap_http_concurrent_test.rb)
+is a hardware diagnostic that starts 20 browser requests with a maximum
+concurrency of three. Opening its URL runs the test automatically and reports
+either `20/20 passed` or the requests that timed out. The button runs it again.
+
+On Pico 2 W with mruby/c and Core `95bf98ac`, maximum concurrency one passed
+20/20, concurrency two passed 60/60, and the first 40 requests at concurrency
+three passed. During a later concurrency-three run, seven requests completed
+before the next `client.write` failed to return after reading its request; the
+remaining browser requests reached their 10-second timeout. The behavior is
+intermittent and has not been attributed to the AP gem. It is being treated as
+a separate possible `picoruby-socket` issue, with details recorded in Issue
+#22 and the TODO files.
+
 The password must contain 8 through 63 bytes and the SSID must contain 1
 through 32 bytes. WPA2/AES PSK is the default authentication mode. An explicit
 Pico SDK authentication value may be supplied as the third argument.

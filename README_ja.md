@@ -125,6 +125,17 @@ Pico 2 W + mruby/cと、PR #509のCoreコミット `95bf98ac` を使い、同じ
 21回の応答後、Ctrl-Cでserver停止、AP無効化、シェル復帰をcleanupエラーなしで確認
 しました。別の状態確認でもAPはinactive、SSIDはnilでした。
 
+[`example/pico_w_ap_http_concurrent_test.rb`](example/pico_w_ap_http_concurrent_test.rb)
+は、ブラウザから合計20件のrequestを最大3件ずつ同時に開始する実機診断用の例です。
+表示されたURLを開くと自動実行され、`20/20 passed` またはtimeoutしたrequestが
+表示されます。ボタンから同じテストを再実行できます。
+
+Pico 2 W + mruby/cとCore `95bf98ac` では、最大1件で20/20、最大2件で60/60、
+最大3件で最初の40件が成功しました。一方、最大3件の後続実行では7件成功後、
+次のrequestを読み終えた `client.write` が戻らず、残りがブラウザ側の10秒timeoutに
+なりました。これは断続的で、AP gem固有の問題とは確認されていません。
+`picoruby-socket` 側の別課題候補として扱い、詳細はIssue #22とTODOに記録します。
+
 passwordは8〜63バイト、SSIDは1〜32バイトでなければなりません。デフォルトの
 認証方式はWPA2/AES PSKです。第3引数へPico SDKの認証値を明示的に渡すことも
 できます。

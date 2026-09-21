@@ -145,6 +145,18 @@ Start this only after the AP/DHCP milestone is stable:
         expected response and no socket error. Ctrl-C cleanup disabled the AP
         and returned to the shell; a separate check reported inactive/nil.
       - [ ] Test multiple tabs and concurrent browser connections.
+        - On Pico 2 W with mruby/c and Core `95bf98ac`, an automated browser
+          test issued 20 total requests with maximum concurrency of one, two,
+          and three. Concurrency one passed 20/20, concurrency two passed
+          60/60 over three runs, and concurrency three passed 40/40 over its
+          first two runs.
+        - On the third concurrency-three run, 7/20 completed before the next
+          `client.write` failed to return after its request had been read. The
+          remaining browser requests reached their 10-second timeout. Every
+          earlier client completed both write and close. A similar stall was
+          observed in another run but does not occur immediately every time.
+          Treat this as a separate possible `picoruby-socket` issue rather
+          than attributing it to the AP gem without further evidence.
       - [ ] Test reconnects and client Wi-Fi recovery.
 - [ ] Revisit the Pico Timer application and browser-facing behavior.
 
