@@ -69,14 +69,22 @@ HTTP通信は後続マイルストーンで扱い、既存のSTA用途を壊さ�
   AP cleanupは成功しており、再bind修正とCtrl-C課題のどちらもbinding固有では
   ありません。最初のmruby版接続ではクライアントWi-Fiが一度切れましたが、再試行
   ではHTTP応答と再bindに成功し、この切断は再現していません。
-- Core後続対応の状況（2026-09-16）：再bind修正の
+- Core後続対応の当時の状況（2026-09-16）：再bind修正の
   [PR #506](https://github.com/picoruby/picoruby/pull/506) はマージ済みです。
-  [PR #509](https://github.com/picoruby/picoruby/pull/509) は未マージで、CIの4項目は
-  すべて成功しています。コミット `95bf98ac` は割り込み後のacceptを止め、
+  [PR #509](https://github.com/picoruby/picoruby/pull/509) のCIは4項目とも成功しました。
+  コミット `95bf98ac` は割り込み後のacceptを止め、
   INT handlerを復元し、mrubyのserver closeを二重実行しても安全にします。
   socketテストは両VMで57/57成功、Steepも成功しました。Pico 2 Wの両VMでは、
   `Interrupt` をrescueするテストでcleanup、AP inactive、シェル復帰を確認し、
   server lifecycleエラーはありませんでした。上記のエラー記録は修正前の観測です。
+- Core後続対応の現在の状況（2026-09-26）：PR #509は、実際のR2P2 Ctrl-C経路では
+  `ensure`が実行されずhandlerが残ること、複数task間のhandler復元順序、
+  `accept_loop`のblock実行中の割り込みを十分に扱えないためcloseされました。
+  代替修正の [PR #513](https://github.com/picoruby/picoruby/pull/513) はmerge済みです。
+  今後の実機検証は#513を含む最新upstreamを基準にし、#509の`95bf98ac`を新しい
+  buildの基点には使いません。
+- [Core #505](https://github.com/picoruby/picoruby/issues/505) はPR #506で解決して
+  close済みであり、#513後の再検証による更新は不要です。
 - AP/socketを使わないスクリプトの再実行時の断続的な不安定さは、修正前後の
   mruby/c firmwareで観測しています。原因は未特定で、
   [Core #510](https://github.com/picoruby/picoruby/issues/510) で別途追跡します。
@@ -144,6 +152,43 @@ AP/DHCPマイルストーンが安定してから開始します。
           エラーはなく、各条件のCtrl-C後にAP停止と
           REPL復帰も確認しました。別個体のため個体差は除外できませんが、単純な
           Pico 2 Wの性能限界である可能性は下がりました。
+        - [x] Issue #26で、PR #513を含む最新upstreamから一時worktreeを作り、
+          Pico 2 W + mruby/cを再buildする。通常のCore checkoutは変更していません。
+          Coreは`729d9d55`、外部gemは`159232e`、一時worktreeは
+          `/private/tmp/picoruby-issue-26.cxTtmx`です。生成したUF2は3,895,296 bytes、
+          SHA-256は`0bb64e3d237e2359b47aa93dbba889a05cd806cfae5b00b55b6cbfdd84f8c593`
+          です。host buildにはmacOS標準Ruby 2.6ではなくHomebrew Ruby 4.0.3を
+          使用し、先に`mrbc:prod`を実行しました。
+        - [x] #513のCtrl-C lifecycle、AP cleanup、shell復帰、同一port再利用を
+          実機で再確認する。port 10085の`TCPServer#accept`待機中にCtrl-Cを送り、
+          `cleanup active?: false`、`INTERRUPT RESCUED`、shell復帰を確認しました。
+          同じboot内でもう一度同じprobeを起動して`READY`まで進み、同一port再bindと
+          2回目の正常なCtrl-C cleanupも確認しました。
+        - [x] [Core #507](https://github.com/picoruby/picoruby/issues/507) の完了条件として、
+          Ctrl-C後に`server is not initialized`や二重closeエラーがなく、AP停止、
+          shell復帰、同一port再利用が成功することを確認する。結果を英語で追記し、
+          すべて成功しました。実機結果を英語で追記し、#513で解決済みとして
+          2026-09-26に#507をcloseしました。
+        - [x] [Core #510](https://github.com/picoruby/picoruby/issues/510) の最小
+          `Interrupt` probeを、同一boot内で複数回実行する。Core revision、VM、
+          実行回数、全serial出力を記録する。mruby/c、Core `729d9d55`で、1回目は
+          `BEFORE`、`ENSURE`、未処理`Interrupt`の後にshellへ復帰しました。2回目は
+          `Exception(vm_id=26):`まで表示して停止し、`BEFORE`もpromptも出ませんでした。
+          5秒待っても復帰せず、#513後も再現することを確認しました。
+        - [x] #510の再現結果をCore Issueへ英語で追記し、#513とは別のshell/VM task
+          recovery問題としてopenのまま調査を続ける。十分な反復で再現しない場合に
+          #513での解消を検討する案は、今回2回目で再現したため採用しませんでした。
+        - [ ] clean boot後に最大3件・20 requestを3周以上実行し、#509 firmwareで
+          観測した`client.write`停止が再現するか確認する。第1周はブラウザ表示が
+          2/20でした。serialでは、最初のprobe responseをwrite・closeした後、次の
+          接続でrequest read完了後の`client.write`から12秒以上戻りませんでした。
+          ブラウザの10秒timeout後も復帰せず、Ctrl-Cでもcleanupやshell復帰は
+          起きませんでした。このため3周の成功条件は未達です。
+        - [x] 再現結果とMicroPython比較を基に、別のPicoRuby Core Issueを
+          作成するか最終判断する。#513後のclean bootでも再現し、MicroPythonでは
+          同じ最大3件条件を60/60成功しているため、Core socket側の別Issueとして
+          [Core #516](https://github.com/picoruby/picoruby/issues/516) を作成しました。
+          native `TCPSocket_send`内の正確な停止位置は#516で追跡します。
       - [ ] 再接続とクライアントWi-Fiの復旧を検証する。
 - [ ] Pico Timerアプリケーションとブラウザ向け動作を再検討する。
 

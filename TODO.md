@@ -82,14 +82,24 @@ existing STA use case must continue to work without regression.
   behavior is binding-specific. The first mruby client connection dropped its
   Wi-Fi connection once, but a retry completed the HTTP response and rebind,
   so the drop has not been reproduced.
-- Core follow-up status (2026-09-16): [PR #506](https://github.com/picoruby/picoruby/pull/506)
-  merged the rebind fix. [PR #509](https://github.com/picoruby/picoruby/pull/509)
-  is open, not merged; all four CI checks passed. Its commit `95bf98ac` stops
+- Core follow-up status at the time (2026-09-16): [PR #506](https://github.com/picoruby/picoruby/pull/506)
+  merged the rebind fix. All four CI checks passed on
+  [PR #509](https://github.com/picoruby/picoruby/pull/509). Its commit `95bf98ac` stops
   accept after interruption, restores the INT handler, and makes mruby server
   close idempotent. Socket tests passed 57/57 on both VMs, and Steep passed.
   On Pico 2 W with both VMs, a test rescuing `Interrupt` confirmed cleanup,
   AP inactive, and shell return without server lifecycle errors. The earlier
   error observations above are historical, not the modified firmware results.
+- Current Core follow-up status (2026-09-26): PR #509 was closed because it
+  did not safely cover the actual R2P2 Ctrl-C path where `ensure` may not run,
+  handler restoration across tasks, or interruption while an `accept_loop`
+  block handles a client. Its replacement,
+  [PR #513](https://github.com/picoruby/picoruby/pull/513), is merged. Future
+  hardware validation uses current upstream containing #513 rather than
+  building new firmware from #509 commit `95bf98ac`.
+- [Core #505](https://github.com/picoruby/picoruby/issues/505) was resolved by
+  PR #506 and is closed. The post-#513 revalidation does not require an update
+  to that issue.
 - Intermittent rerun instability of an AP/socket-free script was observed on
   baseline and modified mruby/c firmware. Its cause is unknown and is tracked
   separately in [Core #510](https://github.com/picoruby/picoruby/issues/510).
@@ -164,6 +174,54 @@ Start this only after the AP/DHCP milestone is stable:
           stopped the AP and returned to the
           REPL. Board variation is not excluded, but a basic Pico 2 W
           performance limit is now less likely.
+        - [x] In Issue #26, create a temporary worktree from current upstream
+          containing PR #513 and rebuild Pico 2 W + mruby/c without modifying
+          the normal Core checkout. The build used Core `729d9d55`, external
+          gem `159232e`, and worktree `/private/tmp/picoruby-issue-26.cxTtmx`.
+          The resulting UF2 is 3,895,296 bytes with SHA-256
+          `0bb64e3d237e2359b47aa93dbba889a05cd806cfae5b00b55b6cbfdd84f8c593`.
+          The host build used Homebrew Ruby 4.0.3 instead of the macOS system
+          Ruby 2.6 and ran `mrbc:prod` before the R2P2 build.
+        - [x] Revalidate #513 Ctrl-C lifecycle, AP cleanup, shell return, and
+          same-port reuse on hardware. Ctrl-C while waiting in
+          `TCPServer#accept` on port 10085 produced `cleanup active?: false`,
+          `INTERRUPT RESCUED`, and returned to the shell. Starting the same
+          probe again within the same boot reached `READY`, confirming the
+          same-port rebind, and its second Ctrl-C cleanup also succeeded.
+        - [x] Check the acceptance criteria of
+          [Core #507](https://github.com/picoruby/picoruby/issues/507): no
+          `server is not initialized` or double-close error after Ctrl-C, AP
+          shutdown, shell return, and successful same-port reuse. Add the
+          result in English and close #507 as resolved by #513 if all checks
+          pass. All checks passed; the hardware result was added in English
+          and #507 was closed as resolved by #513 on 2026-09-26.
+        - [x] Run the minimal `Interrupt` probe from
+          [Core #510](https://github.com/picoruby/picoruby/issues/510) multiple
+          times within one boot. Record the Core revision, VM, run count, and
+          complete serial output. With mruby/c on Core `729d9d55`, the first
+          run printed `BEFORE`, `ENSURE`, the unhandled `Interrupt`, and
+          returned to the shell. The second run stopped after
+          `Exception(vm_id=26):`, before `BEFORE`, and did not return to the
+          prompt after five seconds. This confirms reproduction after #513.
+        - [x] Add the #510 reproduction result to the Core issue in English and
+          keep it open as a separate shell/VM task recovery problem. The
+          alternative of considering it resolved after sufficient clean runs
+          did not apply because the second run reproduced the failure.
+        - [ ] From a clean boot, run at least three 20-request rounds at
+          maximum concurrency three and check whether the `client.write`
+          stall observed on the #509 firmware still occurs. The first round
+          showed 2/20 in the browser. On serial, the first probe response was
+          written and closed, then the following connection completed its
+          request read and remained inside `client.write` for more than 12
+          seconds. It did not recover after the browser's 10-second timeout,
+          and Ctrl-C produced neither cleanup nor a shell prompt. The
+          three-round success criterion therefore remains unmet.
+        - [x] Use the result and MicroPython comparison to decide whether to
+          open a separate PicoRuby Core issue. Report this as a separate Core
+          socket issue because it reproduced from a clean boot after #513,
+          while MicroPython completed 60/60 under the same maximum-concurrency
+          setting. [Core #516](https://github.com/picoruby/picoruby/issues/516)
+          now tracks the exact native stopping point inside `TCPSocket_send`.
       - [ ] Test reconnects and client Wi-Fi recovery.
 - [ ] Revisit the Pico Timer application and browser-facing behavior.
 
