@@ -149,6 +149,16 @@ intermittent and has not been attributed to the AP gem. It is being treated as
 a separate possible `picoruby-socket` issue, with details recorded in Issue
 #22 and the TODO files.
 
+For a hardware comparison, official MicroPython v1.29.0 was installed on a
+new Pico 2 W and tested with
+[`comparison/micropython_ap_http_comparison.py`](comparison/micropython_ap_http_comparison.py).
+Maximum concurrency one passed 20/20; concurrency two and three each passed
+60/60 over three runs. Every read, `sendall`, and close completed without
+error. Board-to-board variation is not excluded, but this lowers the likelihood
+that three small concurrent HTTP responses exceed a basic Pico 2 W performance
+limit. The server and AP
+also stopped cleanly and returned to the MicroPython REPL.
+
 The password must contain 8 through 63 bytes and the SSID must contain 1
 through 32 bytes. WPA2/AES PSK is the default authentication mode. An explicit
 Pico SDK authentication value may be supplied as the third argument.

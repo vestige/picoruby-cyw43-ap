@@ -136,6 +136,14 @@ Pico 2 W + mruby/cとCore `95bf98ac` では、最大1件で20/20、最大2件で
 なりました。これは断続的で、AP gem固有の問題とは確認されていません。
 `picoruby-socket` 側の別課題候補として扱い、詳細はIssue #22とTODOに記録します。
 
+ハードウェアとの比較として、新品Pico 2 Wへ公式MicroPython v1.29.0を導入し、
+[`comparison/micropython_ap_http_comparison.py`](comparison/micropython_ap_http_comparison.py)
+で同じ比較を行いました。最大1件は20/20、最大2件と最大3件はそれぞれ3周、
+60/60成功し、すべてでread、`sendall`、closeが完了しました。別個体のため個体差は
+除外できませんが、
+最大3件の小さなHTTP応答がPico 2 Wの単純な性能限界である可能性は下がりました。
+比較後はserverとAPを停止し、MicroPython REPLへの復帰も確認済みです。
+
 passwordは8〜63バイト、SSIDは1〜32バイトでなければなりません。デフォルトの
 認証方式はWPA2/AES PSKです。第3引数へPico SDKの認証値を明示的に渡すことも
 できます。

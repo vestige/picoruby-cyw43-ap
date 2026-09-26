@@ -157,6 +157,13 @@ Start this only after the AP/DHCP milestone is stable:
           observed in another run but does not occur immediately every time.
           Treat this as a separate possible `picoruby-socket` issue rather
           than attributing it to the AP gem without further evidence.
+        - Issue #24 compared a new Pico 2 W running official MicroPython
+          v1.29.0. Maximum concurrency one passed 20/20; concurrency two and
+          three each passed 60/60 over three runs in one AP/server session.
+          Every read, `sendall`, and close completed without error; Ctrl-C
+          stopped the AP and returned to the
+          REPL. Board variation is not excluded, but a basic Pico 2 W
+          performance limit is now less likely.
       - [ ] Test reconnects and client Wi-Fi recovery.
 - [ ] Revisit the Pico Timer application and browser-facing behavior.
 
