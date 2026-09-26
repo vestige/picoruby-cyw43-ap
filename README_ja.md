@@ -108,14 +108,16 @@ closeした後、APは自動停止しました。一方、20接続後にAPとser
 後続修正の検証結果ではありません。
 
 同じportへの再bind修正はCoreの [PR #506](https://github.com/picoruby/picoruby/pull/506)
-でマージ済みです。待受中のCtrl-Cとserverの安全な再closeを扱う
-[PR #509](https://github.com/picoruby/picoruby/pull/509) は、2026-09-16時点で
-未マージですが、CIの4項目はすべて成功しています。修正版firmwareでは、
-Pico 2 Wのmruby/c・mruby両方で、テストが `Interrupt` をrescueした場合に
-server/APのcleanupとシェル復帰を確認しました。APはinactiveで、server cleanup
-エラーもありませんでした。リリース版や未修正upstreamでの成功を意味するものではありません。
-修正前後のmruby/c firmwareで観測した断続的なスクリプト再実行時の不安定さは、
-Coreの [Issue #510](https://github.com/picoruby/picoruby/issues/510) で別途追跡します。
+でマージ済みです。待受中のCtrl-C処理は、未マージの
+[PR #509](https://github.com/picoruby/picoruby/pull/509) に代わって
+[PR #513](https://github.com/picoruby/picoruby/pull/513) で修正されました。
+PR #513を含むCore `729d9d55`、Pico 2 W + mruby/cの実機では、待受中のCtrl-C後に
+AP停止、シェル復帰、同一portへの即時再bindを2回確認し、lifecycleエラーは
+ありませんでした。この結果を追記してCore
+[Issue #507](https://github.com/picoruby/picoruby/issues/507) をcloseしました。
+一方、AP/socketを使わない未処理`Interrupt`スクリプトは、同じfirmwareで2回目の
+起動時に停止しました。このshell/VM task recovery問題はCore
+[Issue #510](https://github.com/picoruby/picoruby/issues/510) で引き続き追跡します。
 
 Pico 2 W + mruby/cと、PR #509のCoreコミット `95bf98ac` を使い、同じブラウザ・
 同じタブから21回逐次リロードしました。すべて期待した応答がすぐに表示されました。
@@ -133,8 +135,11 @@ Pico 2 W + mruby/cと、PR #509のCoreコミット `95bf98ac` を使い、同じ
 Pico 2 W + mruby/cとCore `95bf98ac` では、最大1件で20/20、最大2件で60/60、
 最大3件で最初の40件が成功しました。一方、最大3件の後続実行では7件成功後、
 次のrequestを読み終えた `client.write` が戻らず、残りがブラウザ側の10秒timeoutに
-なりました。これは断続的で、AP gem固有の問題とは確認されていません。
-`picoruby-socket` 側の別課題候補として扱い、詳細はIssue #22とTODOに記録します。
+なりました。さらに、PR #513を含むCore `729d9d55`からclean bootした再検証でも、
+ブラウザ表示は2/20となり、request read完了後の`client.write`が12秒以上戻らず、
+ブラウザtimeoutやCtrl-Cでも復帰しませんでした。AP gem固有の問題とは断定せず、
+Coreの [Issue #516](https://github.com/picoruby/picoruby/issues/516) でRP2040/RP2350の
+TCP send経路として追跡します。外部gem側の詳細はIssue #22とIssue #26に記録しています。
 
 ハードウェアとの比較として、新品Pico 2 Wへ公式MicroPython v1.29.0を導入し、
 [`comparison/micropython_ap_http_comparison.py`](comparison/micropython_ap_http_comparison.py)

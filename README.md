@@ -114,15 +114,15 @@ socket lifecycle observations tracked in Issue #16; the errors above describe
 the firmware used at that time, not the result of the later fixes.
 
 Core [PR #506](https://github.com/picoruby/picoruby/pull/506) merged the
-same-port rebind fix. Core [PR #509](https://github.com/picoruby/picoruby/pull/509)
-addresses Ctrl-C during `accept` and safe repeated server close. As of
-2026-09-16, #509 is open (not merged), with all four CI checks passing.
-On Pico 2 W with both mruby/c and mruby, its modified firmware completed
-server/AP cleanup and returned to the shell when the test rescued `Interrupt`;
-the AP was inactive and no server cleanup error appeared. This is not yet a
-claim about released or unmodified upstream firmware.
-Intermittent script-rerun instability observed on both baseline and modified
-mruby/c firmware is tracked separately in Core
+same-port rebind fix. Core [PR #513](https://github.com/picoruby/picoruby/pull/513)
+superseded the unmerged [PR #509](https://github.com/picoruby/picoruby/pull/509)
+and fixed Ctrl-C handling during blocking socket waits. On a Pico 2 W with
+mruby/c and Core `729d9d55` containing #513, two hardware runs confirmed AP
+shutdown, shell return, and immediate same-port rebind after Ctrl-C without a
+lifecycle error. Core [Issue #507](https://github.com/picoruby/picoruby/issues/507)
+was closed with this result. An AP/socket-free unhandled `Interrupt` script
+still stopped during its second invocation on the same firmware; that separate
+shell/VM task recovery problem remains open as Core
 [Issue #510](https://github.com/picoruby/picoruby/issues/510).
 
 On Pico 2 W with mruby/c and Core commit `95bf98ac` from PR #509, 21
@@ -144,10 +144,13 @@ On Pico 2 W with mruby/c and Core `95bf98ac`, maximum concurrency one passed
 20/20, concurrency two passed 60/60, and the first 40 requests at concurrency
 three passed. During a later concurrency-three run, seven requests completed
 before the next `client.write` failed to return after reading its request; the
-remaining browser requests reached their 10-second timeout. The behavior is
-intermittent and has not been attributed to the AP gem. It is being treated as
-a separate possible `picoruby-socket` issue, with details recorded in Issue
-#22 and the TODO files.
+remaining browser requests reached their 10-second timeout. A clean-boot
+revalidation with Core `729d9d55` containing PR #513 showed 2/20 in the
+browser and again remained inside `client.write` for more than 12 seconds
+after the request read had completed. Neither the browser timeout nor Ctrl-C
+recovered it. This has not been attributed to the AP gem; Core
+[Issue #516](https://github.com/picoruby/picoruby/issues/516) tracks the
+RP2040/RP2350 TCP send path. External-gem details remain in Issues #22 and #26.
 
 For a hardware comparison, official MicroPython v1.29.0 was installed on a
 new Pico 2 W and tested with
