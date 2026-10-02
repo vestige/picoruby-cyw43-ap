@@ -137,7 +137,7 @@ AP/DHCPマイルストーンが安定してから開始します。
         検証しました。blockingな `gets` を上限付きnonblocking header readへ変更後、
         同じタブから21回すべて期待した応答を受信し、socketエラーはありませんでした。
         Ctrl-C後にAP停止とシェル復帰、別確認でinactive・SSID nilを確認しました。
-      - [ ] 複数タブとブラウザからの同時接続を検証する。
+      - [x] 複数タブとブラウザからの同時接続を検証する。
         - Pico 2 W + mruby/c、Core `95bf98ac` で、ブラウザから合計20件を
           最大1、2、3件ずつ同時実行する自動テストを実施しました。最大1件は
           20/20、最大2件は3周で60/60、最大3件は最初の2周で40/40成功しました。
@@ -189,6 +189,214 @@ AP/DHCPマイルストーンが安定してから開始します。
           同じ最大3件条件を60/60成功しているため、Core socket側の別Issueとして
           [Core #516](https://github.com/picoruby/picoruby/issues/516) を作成しました。
           native `TCPSocket_send`内の正確な停止位置は#516で追跡します。
+        - [x] Core側の起動報告
+          [#524](https://github.com/picoruby/picoruby/issues/524)を、最新upstream
+          `master`とnative markerによる直接観測で見直す。
+          - [x] Core `729d9d55`、Pico 2 W、mruby/c、poll方式、標準388KB heapで、
+            外部AP gemを含まない比較用firmwareをbuildする。既存build cacheには
+            外部AP gemのobjectが残っていたため、build directoryを削除せず退避し、
+            完全再build後に外部gemが含まれないことを確認しました。
+          - [x] 通常起動ではPicoModemがACKを受け取れず、起動直後の2秒間に`s`を
+            自動送信して`/etc/init.d/r2p2`をskipすると、同じfirmwareでshellへ到達し、
+            `/home/background_test.rb`を6,490 bytesすべて読み出せることを確認しました。
+          - [x] `/home/app.rb`と`/home/app.mrb`は存在しませんでした。認証情報を表示せず
+            `/etc/network/wifi.yml`を確認し、`auto_connect=false`、`retry_if_failed=false`、
+            `watchdog=false`であることを確認しました。現在の`wifi_connect`は
+            `auto_connect`判定より前に`Network::WiFi.init`を実行します。
+          - [x] `auto_connect=false`の早期returnを`Network::WiFi.init`より前へ移す
+            最小比較版を完全再buildする。`/etc/ruby-description`だけを削除して同梱された
+            system executableを再生成させ、ユーザーファイルとWi-Fi設定は保持しました。
+            起動skipなしの通常起動と、その後の通常再起動の両方でPicoModemのACKと
+            6,490-byte fileの完全な読み出しに成功しました。
+          - [x] PicoRuby Coreへ英語の新規Issue
+            [#524](https://github.com/picoruby/picoruby/issues/524)を作る。環境、最小再現手順、通常起動と
+            boot skipのA/B結果、設定値、処理順序、最小比較修正、2回の通常起動成功を
+            記載します。これはshell起動前の問題であり、同一boot内で`Interrupt`再実行が
+            止まる#510や、AP上の`TCPSocket#write`が止まる#516を解決したとは扱いません。
+          - [x] 最新Coreの専用branchで最小修正と回帰testを用意し、共有されるshell command
+            への影響をmruby/cとmrubyの両方で確認する。現在の#516診断branchへ混ぜません。
+            - [x] 最新upstream/master `6b7c5437`（4.0.6）から
+              `issue-524/skip-disabled-auto-connect`を作り、最小の処理順変更だけを適用する。
+            - [x] Pico 2 W production構成をmruby/cとmrubyの両方でbuildする。
+            - [x] mruby/c版を既存filesystemと`auto_connect=false`設定を保持したPico 2 Wへ
+              書き込み、起動skipなしの通常起動と通常再起動の両方でPicoModem ACKおよび
+              6,490-byte file readが成功することを確認する。
+            - [x] mruby版でも実機の通常起動と通常再起動を確認する。両方で
+              PicoModem ACKおよび6,490-byte file readに成功しました。
+            - [x] 既存test基盤では端末上の設定ファイルとCYW43を使うshell executableを
+              直接実行できないため、この処理順だけのための公開helper APIは追加しない。
+              mruby/c・mruby両production buildと、両VMそれぞれ2回の通常起動による
+              実機A/Bを今回の変更に見合う回帰検証として記録します。
+            - [x] Coreの専用branchへ`7686f0e9 Fix disabled Wi-Fi auto-connect startup`
+              として1-fileの最小修正をcommitする。forkへpushし、英語PR
+              [#525](https://github.com/picoruby/picoruby/pull/525)を作成しました。
+          - [x] 起動修正を区切った後、完全再buildしたCore-only firmwareで#510の最小
+            `Interrupt` probeを繰り返す。Pico 2 W、mruby/c、poll方式、標準388KB heap、
+            Core `6b7c5437` + 未mergeの#525 `7686f0e9`、外部AP gemなしで、再起動を
+            またぐ2回の通常bootそれぞれ20/20、合計40/40回shellへ復帰しました。
+            各bootの1回目は通常の`Interrupt`表示だけで、2回目以降は
+            `Exception(vm_id=27)`が追加表示されましたが、その後も`BEFORE`、`ENSURE`、
+            通常の`Interrupt`を表示してpromptへ復帰しました。
+          - [x] 上記結果を#510へ英語で
+            [返信しました](https://github.com/picoruby/picoruby/issues/510#issuecomment-5932655771)。
+            以前の2回目hangは今回再現しなかった
+            ものの、40/40だけで解決済みとは断定せず、追加の`vm_id=27`表示と、#525が
+            起動順序だけの未merge変更で#510の修正とは扱っていないことを明記します。
+            最初の通常起動でshell/PicoModemが応答しない状態があり、boot scriptを省く
+            救済版では応答し、保存済み`r2p2` bytecodeはbuild生成物と完全一致、Wi-Fi設定は
+            `auto_connect=false`、自動起動appなし、救済shellからのWi-Fi checkとboot script
+            全体の手動実行は成功しました。その後通常版へ戻すと正常起動した経緯は、
+            #510のprobe結果とは分けて参考情報として記載しました。
+          - [x] maintainer側では最新`master`で再現しなかったことを受け、PR #525は
+            1つの設定で初期化を回避するだけで、country codeの適用まで省く可能性が
+            あると理解する。PRはcloseし、原因修正として再利用しない。
+          - [x] #524へ、最新masterを使い、`cyw43_arch_init_with_country`の直前・直後に
+            serial markerを置いて比較すると返信する。
+          - [x] 最新upstream `master`から新しい診断branch/worktreeを作る。
+            `cyw43_arch_init_with_country`の前後へ観測専用markerだけを追加し、初期化順序や
+            挙動は変更しない。
+          - [x] Core `d392ce47`から、外部AP gemを含まないPico 2 W mruby/c
+            productionの比較用UF2をbuildする。UF2は
+            `/private/tmp/picoruby-issue-524-markers.fLGEeD/build/r2p2/femtoruby/pico2_w/prod/R2P2-FEMTORUBY-4.0.6-PICO2_W-20261002-d392ce47.uf2`、
+            3,908,608 bytes、SHA-256は
+            `65ee71f0ebdc8395798866ff4b9a5522b946c67a92ac01e0498be20d0bd5a407`。
+            UF2内に#524の両marker文字列があり、外部AP gemがbuildに含まれないことも
+            確認しました。最初のbuildでは`printf`を使ったためUSB shellではなく
+            Picoprobe UART向けとなり、正常bootしてもmarkerを取得できませんでした。
+            markerの出力先だけを`picorb_hal_write`へ変更し、上記hashで再buildしました。
+          - [x] 書き込み前にRP2350のBOOTSEL deviceを一意に確認する。filesystemと既存の
+            `auto_connect=false`という比較条件は保持する。
+          - [x] 同じPico 2 Wで通常起動を繰り返し、serial logを取得する。最初の起動では
+            CYW43 markerより前に、古い生成物 `/bin/wifi_connect` のcompile failureが
+            見つかりました。`/etc/ruby-description`を
+            `/etc/ruby-description.pre-524-usb-marker`へ非破壊で退避し、次の起動で不一致の
+            bundled commandを再生成しました。その起動と続く通常再起動はいずれも
+            `cyw43_arch_init_with_country`の前後markerを表示し、`auto_connect=false`のまま
+            shellへ到達しました。
+          - [x] #524へ、再現しなかった結果と正確な条件を報告する。最初のcompile failureは
+            CYW43初期化より前に発生し、bundled commandの再生成後は解消した別事象として
+            説明しました。英語の訂正と謝罪をIssue comment `5953909705`として投稿し、
+            PR #525の早期return仮説には戻りませんでした。
+        - [x] Core #510は、sandbox VMに残っていたexception参照と追加の
+          `Exception(vm_id=27)`表示をupstream PR #527が修正したため完了とする。
+          この説明は手元の観測と一致し、AP/socketの結果は#510の根拠に使わない。
+        - [x] Core #516のCore-only条件は、maintainerが現行Core `d392ce47`以降で確認した
+          結果をもって完了とする。最大3並列・20 requestを3周して60/60、peer disconnectは
+          hangせず例外、serverはその後もacceptを継続し、Ctrl-Cでshellへ戻っています。
+        - [x] #524への回答後、`d392ce47`以降から外部AP gemを明示的に組み込んで、同等の
+          concurrent HTTP試験をやり直す。Core-onlyが成功しAP版だけが止まる場合は、#516を
+          reopenせず外部gem repositoryで続ける。外部gemなしでも再現し、nativeの停止位置を
+          特定できた場合だけCore Issueのreopenまたは新規Issueを検討する。
+          - [x] Issue #22の既存診断変更を破棄せず、外部gemの専用branch
+            `issue-22/current-core-revalidation`を作る。
+          - [x] Core `d392ce47`の使い捨てworktree
+            `/private/tmp/picoruby-cyw43-ap-current.XwP9bu`を作り、外部gem symlinkと
+            mruby/c Pico 2 W用の一時build設定だけを追加してproduction buildを完了する。
+            build summaryに`picoruby-cyw43-ap 0.1.0`が含まれ、ELFに
+            `picoruby_cyw43_ap_prepare_deinit`があることを確認しました。
+          - [x] 観測変更を含まない通常版UF2を
+            `/private/tmp/picoruby-cyw43-ap-current.XwP9bu/build/r2p2/femtoruby/pico2_w/prod/R2P2-FEMTORUBY-4.0.6-PICO2_W-20261002-d392ce47.uf2`、
+            3,914,752 bytes、SHA-256
+            `619a3c3d0212dd3d0c97224f9c62bed89502ed1dc95ad9e262dd1f28ed975310`
+            として記録する。#524の診断markerが含まれないことも確認しました。
+          - [x] 書き込み前にPico 2 WのRP2350 BOOTSEL volumeを一意に確認する。最初の起動では
+            bundled system executableがこのfirmwareと一致したことを確認してから、HTTP結果を
+            有効な試行として扱う。最初の起動は古い生成物`/bin/wifi_connect`のcompile failureで
+            停止したため無効としました。boot skip後、`/etc/ruby-description`だけを
+            `/etc/ruby-description.pre-issue22-d392ce47`へ退避すると、次の起動で不一致のcommandが
+            再生成され、その次の通常起動は再生成なしでshellへ到達しました。
+          - [x] concurrent HTTP exampleを転送して明示実行する。PicoModemで6,490 bytesすべてを
+            CRC32 `a659813e`付きで`/home/issue22_current_core_d392ce47.rb`へ転送しました。
+            最大3並列・20 requestを3周し、3周とも高速に完了して合計60/60でした。log上も
+            全requestでresponse writeとclient closeが完了し、serverはaccept待ちへ復帰しました。
+            Ctrl-C後は`Stopping HTTP server`、`AP active?: false`を表示し、cleanup errorなしで
+            shellへ戻りました。
+          - [x] 比較成功後、request parseとresponse buildの一時markerを削除する。公開する
+            診断exampleには既存のaccept、request read、response write、client closeの境界logを
+            残す。
+          - [x] 再検証結果をIssue #22へコメントし、`completed`としてcloseする。
+            https://github.com/vestige/picoruby-cyw43-ap/issues/22#issuecomment-5954908956
+        <!-- 以下の#516診断メモは過去の経緯として残します。 -->
+        <!--
+        - [ ] Core #516は、次の診断方針を結果に応じて見直しながら進める。
+          - 現時点では、#509のCore `95bf98ac`でも後続実行が7/20で停止していたため、
+            #513で新しく発生した回帰とは判断しない。#513以後の変更が再現頻度へ
+            影響した可能性は残す。
+          - USB診断ログにより、`altcp_write`、`altcp_output`、`lwip_end`は完了し、
+            その直後の`cyw43_arch_poll()`が戻らない実行を確認済み。送信後のpollだけを
+            削除した比較版は1/20、続く実行は0/20となり、Ctrl-Cでも復帰しなかった。
+            必要な通信処理も止めるため、pollの単純削除は修正案として採用しない。
+          - 元の送信後pollを戻し、lwIPタイマー、CYW43ドライバー、次回タイマー更新の
+            ワーカー境界を追跡しました。最初の3 probeを処理した実行では全ワーカーが
+            戻りましたが、続く0/20実行ではaccept側のpollへ一度も戻らず、
+            `Task::Queue#pop`で待機したままでした。pollしなければ接続イベントが発生
+            せず、そのイベントを待つためpollへ戻れない循環待ちを確認しました。
+          - mrubyでは既に使われているscheduler serviceのCYW43 pollをmruby/cにも
+            適用する最小比較版を試しました。この版はaccept待機を越えましたが、
+            2/20の後、5番目の接続の`client.write`から戻らず、Ctrl-Cにも応答しません
+            でした。したがってaccept待機の循環とTCP送信中の停止は二段階で存在し、
+            scheduler poll追加だけでは全体を修正できないと判断します。
+          - 次はscheduler poll追加を最終案にせず、Pico SDKの公開された
+            `threadsafe_background`方式を現行Coreへ必要最小限だけ適用してA/B比較する。
+            過去の`e83b87ae`全体は古いsocket変更を含むためcherry-pickせず、build define、
+            CMake link、poll条件だけを現行コードに合わせて移す。accept待機と送信停止の
+            両方が消えるかを確認する。
+          - [x] 現行Core `729d9d55`の一時worktreeで、公開された
+            `threadsafe_background`構成へ切り替えた比較用firmwareをbuildする。
+            scheduler-poll実験は取り除き、build define、CMake link、socket通知の
+            poll依存条件だけをbackground方式へ合わせました。UF2は3,896,320 bytes、
+            SHA-256は
+            `0b6d6e20546349b821ffa0319971a5f91013c244fbe8b7b6b32d41b82da9e298`
+            です。Coreの通常checkoutは変更していません。
+          - [x] 起動時の比較条件を整理する。FLASHに残っていた別firmware由来の
+            `/bin/wifi_connect`はbackground版でcompileできず、AP試験前に起動が
+            止まりました。既知の救援用firmwareで起動し、生成物を退避してから
+            background版を再度書き込み、同版の`wifi_connect`が再生成されてshellへ
+            到達することを確認しました。`/home/app.rb`は
+            `/home/app.rb.pre-background-20260928`へ退避し、以後はAPを自動起動せず、
+            PicoModemで`/home/background_test.rb`へ転送して明示実行します。
+            `/bin`はboot時に同梱コマンドへ同期されるため、退避した旧
+            `wifi_connect`生成物は残りませんでしたが、救援用UF2から再現できます。
+          - [x] background版の最初の同時request試験へRuby markerを追加する。
+            最初のmarkerなし実行はブラウザが0/20で、Connection 3の
+            `request read complete`後、`response write start`前に停止しました。
+            request line、path、probe queryの解析、response生成、writeの境界を分けた
+            marker版では1/20でした。テストページと最初のprobeは全marker、write、closeを
+            完了し、その後の`Waiting for connection`で次のacceptへ進みませんでした。
+            Ctrl-Cにも5秒以上応答しませんでした。したがって今回はwrite停止ではなく、
+            background callbackによる次の接続の受付、またはcallbackとRuby側
+            `accept_nonblock`の間の状態通知・可視性を次の対象にします。
+          - [ ] background callback内では出力やRuby APIを呼ばず、accept callbackの
+            呼出回数、pending socketなし、accepted socket設定完了を数値counterだけで
+            記録する。counterはRuby側の安全な`accept_nonblock`文脈から出力し、次の
+            接続がlwIPまで届いていないのか、届いた状態をRuby側が観測できないのかを
+            分離します。callbackで`Task::Queue`を直接操作する案は、background実行文脈
+            からVMを触る安全性を確認できるまで採用しません。
+          - [ ] marker追加後、同じbackground版・同じ明示実行手順で再起動をまたいで
+            最低2回確認する。各回についてブラウザ結果、最後のserial marker、Ctrl-C
+            応答、AP停止、socket解放、shell復帰の成否を記録します。停止位置が一致
+            しない場合は、再現頻度だけでなく各停止位置を別々に扱います。
+          - [ ] [Core #516](https://github.com/picoruby/picoruby/issues/516) への次の英語返信は、
+            上記marker試験と再起動をまたぐ最低2回のbackground比較が完了した時点で
+            行います。成功・失敗のどちらでも、poll版との差、正確な最後のmarker、
+            Ctrl-Cとcleanup結果、比較用変更が未確定の診断実装であることを記載します。
+            現在の0/20および1/20だけでは停止位置が従来と異なるため、まだ返信しません。
+          - [x] [Core #510](https://github.com/picoruby/picoruby/issues/510) への次の英語返信に
+            必要な独立再検証を完了しました。APとsocketを使わない最小`Interrupt` probeを、
+            上記のCore-only条件で再起動をまたいで40回実行し、すべてshellへ復帰しました。
+            #516のhangを根拠にせず、両Issueは引き続き別問題として扱います。英語返信
+            自体も上の独立項目として完了しました。
+          - background版が成功しても直ちに最終修正とはせず、poll版との違い、callback
+            実行文脈、mruby/mruby-c両方への影響を整理する。失敗する場合は#509の
+            `95bf98ac`にも同じ停止位置の診断を適用して再現頻度を比較する。
+          - 原因を特定してから、公開APIの範囲で最小の修正を作る。タイムアウトは
+            安全装置としては検討できるが、通信状態の破損や無限処理を隠すだけなら
+            根本修正とは扱わない。
+          - 修正前後を同じPico 2 Wと同じテスト条件で比較する。修正後は最大3並列の
+            20 requestを最低3周、AP再接続、Ctrl-C、AP停止、socket解放、shell復帰を
+            確認する。原因や観測結果が仮説と異なる場合は、この順序と修正候補を
+            更新してから次へ進む。
+        -->
       - [ ] 再接続とクライアントWi-Fiの復旧を検証する。
 - [ ] Pico Timerアプリケーションとブラウザ向け動作を再検討する。
 
