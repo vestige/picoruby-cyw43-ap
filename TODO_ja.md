@@ -132,7 +132,7 @@ AP/DHCPマイルストーンが安定してから開始します。
 
 - [x] PicoRuby coreの外部に最小構成のHTTPサーバー例を追加する。
 - [x] `accept`、`recv`、`close` の繰り返しlifecycleをテストする。
-- [ ] リロード、複数タブ、再接続、クライアントWi-Fiの復旧をテストする。
+- [x] リロード、複数タブ、再接続、クライアントWi-Fiの復旧をテストする。
       - [x] PR #509のCore `95bf98ac` を使い、Pico 2 W + mruby/cで逐次リロードを
         検証しました。blockingな `gets` を上限付きnonblocking header readへ変更後、
         同じタブから21回すべて期待した応答を受信し、socketエラーはありませんでした。
@@ -397,7 +397,22 @@ AP/DHCPマイルストーンが安定してから開始します。
             確認する。原因や観測結果が仮説と異なる場合は、この順序と修正候補を
             更新してから次へ進む。
         -->
-      - [ ] 再接続とクライアントWi-Fiの復旧を検証する。
+      - [x] [Issue #29](https://github.com/vestige/picoruby-cyw43-ap/issues/29)で、
+        再接続とクライアントWi-Fiの復旧を検証する。
+        - [x] 最新の`main` `9ad0375`から専用branch
+          `issue-29/ap-reconnect-validation`を作る。検証開始時のCore upstream `master`は
+          `d392ce47`です。boardはPico 2 W、VMはmruby/cを使用する。
+        - [x] 初回AP接続は短時間で完了し、DHCPでIP address `192.168.4.2`、
+          subnet mask `255.255.255.0`、router `192.168.4.1`を取得した。
+        - [x] 同じboot内でAPを停止し、SSIDが一覧から消えることを確認した。
+        - [x] 同じboot内でAPを再度有効化し、同じclientが短時間で再接続した。
+          DHCP情報は初回と同じ`192.168.4.2`、`255.255.255.0`、`192.168.4.1`だった。
+        - [x] 初回と再接続後の両方で、AP停止後にclientが通常利用しているWi-Fiへ自動で
+          復旧し、インターネット接続を利用できることを確認した。
+        - [x] 2回ともCtrl-C、HTTP server停止、`AP active?: false`、cleanup errorなし、
+          shell復帰を確認した。初回接続時にブラウザへ残っていた試験ページが実行した
+          20 requestも20/20成功した。結果をIssueへ記録し、`completed`としてcloseした。
+          https://github.com/vestige/picoruby-cyw43-ap/issues/29#issuecomment-5966735758
 - [ ] Pico Timerアプリケーションとブラウザ向け動作を再検討する。
 
 ## PicoRuby coreの参照情報

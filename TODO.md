@@ -148,7 +148,7 @@ Start this only after the AP/DHCP milestone is stable:
 
 - [x] Add a minimal HTTP-server example outside PicoRuby core.
 - [x] Test repeated `accept`, `recv`, and `close` lifecycles.
-- [ ] Test refreshes, multiple tabs, reconnects, and client Wi-Fi recovery.
+- [x] Test refreshes, multiple tabs, reconnects, and client Wi-Fi recovery.
       - [x] Test sequential browser refreshes on Pico 2 W + mruby/c with Core
         `95bf98ac` from #509. After replacing blocking `gets` with bounded
         nonblocking header reads, 21 same-tab reloads completed with the
@@ -497,7 +497,26 @@ Start this only after the AP/DHCP milestone is stable:
             return. Update this sequence and the candidate fix before
             proceeding whenever observations contradict the hypothesis.
         -->
-      - [ ] Test reconnects and client Wi-Fi recovery.
+      - [x] In [Issue #29](https://github.com/vestige/picoruby-cyw43-ap/issues/29),
+        test reconnects and client Wi-Fi recovery.
+        - [x] Create `issue-29/ap-reconnect-validation` from the latest `main`
+          at `9ad0375`. The Core upstream `master` at validation start is
+          `d392ce47`; use Pico 2 W with mruby/c.
+        - [x] The initial AP connection completed quickly and DHCP assigned IP
+          address `192.168.4.2`, subnet mask `255.255.255.0`, and router
+          `192.168.4.1`.
+        - [x] Disable the AP in the same boot and confirm that its SSID disappears.
+        - [x] Re-enable the AP in the same boot. The same client reconnected
+          quickly and obtained the same DHCP information: `192.168.4.2`,
+          `255.255.255.0`, and `192.168.4.1`.
+        - [x] After both AP shutdowns, the client automatically recovered its
+          normal Wi-Fi connection and could access the Internet.
+        - [x] Both runs completed Ctrl-C, HTTP server shutdown,
+          `AP active?: false`, cleanup without errors, and shell return. A test
+          page left open in the browser also completed an incidental 20-request
+          run at 20/20 during the first connection. Record the result in the
+          Issue and close it as `completed`.
+          https://github.com/vestige/picoruby-cyw43-ap/issues/29#issuecomment-5966735758
 - [ ] Revisit the Pico Timer application and browser-facing behavior.
 
 ## PicoRuby core references
