@@ -413,7 +413,48 @@ AP/DHCPマイルストーンが安定してから開始します。
           shell復帰を確認した。初回接続時にブラウザへ残っていた試験ページが実行した
           20 requestも20/20成功した。結果をIssueへ記録し、`completed`としてcloseした。
           https://github.com/vestige/picoruby-cyw43-ap/issues/29#issuecomment-5966735758
-- [ ] Pico Timerアプリケーションとブラウザ向け動作を再検討する。
+- [ ] [Issue #31](https://github.com/vestige/picoruby-cyw43-ap/issues/31)で、
+      Pico TimerのAP版フィジビリティとブラウザ向け動作を実装する。
+      - [x] `main` `11317f6`から専用branch
+        `issue-31/pico-timer-feasibility`を作る。検討開始時のCore upstream `master`は
+        `d392ce47`です。
+      - [x] 古い`codex/pcw-timer-replacement`は資料としてだけ読み、現在のCoreへbranch
+        全体を移植しない。純粋なTimerロジックとUIのうち再利用できる部分だけを選んだ。
+      - [x] 過去のSTA exampleに含まれる認証情報を新しい実装へ持ち込まない。新規ファイルに
+        含まれないことを検索でも確認した。現在も有効な場合は利用者側で変更し、remote
+        branchの扱いは別途明示的に判断する。
+      - [x] 現在の`CYW43::AP` APIと検証済みHTTP server lifecycleを使い、秒数設定、開始、
+        停止、reset、残り時間・状態表示を持つ最小AP Timer example
+        `example/pico_w_ap_timer.rb`を実装した。自動pollingは行わず、状態は手動reloadで
+        更新する。response bodyは512 bytes単位で送信する。
+      - [x] 最新Coreの`Machine.board_millis`がmruby/c・mrubyの両方で公開されていること、
+        HTML/responseサイズ、分割送信、host smoke test可能範囲を確認した。Timer状態と
+        全routeを`example/pico_w_ap_timer_host_smoke.rb`で検証し、CRubyとPicoRuby hostの
+        両方でpassした。両ファイルのPicoRuby `mrbc`コンパイルも成功した。
+      - [x] 一時Core worktreeでPico 2 W + mruby/cをbuildし、通常のCore checkoutを変更しない。
+        Core `d392ce47`、3,914,752 bytes、SHA-256
+        `ce64d21d2f80254a2223043ec18dfac3b8a6d2c4392e8f32aa004cb39f080fd9`のUF2を生成した。
+      - [x] 実機でTimer全体を再試行する前に、旧実装と現在の実行条件を切り分ける。
+        旧AP TimerはCore `b526e123`のWIPで、READMEは実機完走を明記していない。
+        後から追加されたfirmware埋め込みの専用VM起動はSTA Timer用であり、旧AP Timerと
+        現在のshell `Sandbox#load_file`実行を同条件とは扱わない。段階的probeでは、`.mrb`
+        読込・require・定数定義・local variable代入・通常class instanceへの代入は成功し、
+        module自身のinstance variable代入で停止した。Timer状態を通常classへ移すと
+        AP起動とブラウザ表示まで成功した。
+      - [x] 実機で画面表示、Timer操作と満了、reload後の状態、Ctrl-C、AP cleanup、shell復帰、
+        通常Wi-Fiへの復旧を確認する。画面表示、Set/Start/Stop/Reset、満了、Ctrl-C、
+        `AP active?: false`、shell復帰は確認済み。修正前はボタン後の表示にStart約3秒、
+        Stop約3〜6秒かかったとの報告があり、serialに`HTTP request timeout`と
+        `send failed`を観測した。timing markerでは有効なStart/StopのHTTP処理は各8ms以内。
+        その前にブラウザから来たデータなしの接続を約5.6秒待つ例があり、後続requestを
+        遅らせていた。最初の1 byteだけ500msで打ち切り、データ受信後のheader期限は5秒を
+        維持した結果、空の接続は約0.56秒で終了した。診断表示を外した版でもStart/Stopは
+        1回で速く反映された。最後のCtrl-Cで再度AP無効化とshell復帰を確認済み。
+        SSIDがWi-Fi一覧から消え、クライアントが通常Wi-Fiへ戻りインターネット接続も
+        復旧したことを利用者が確認した。
+      - [x] 検証結果をREADME、日英TODO、Issueへ記録する。
+        https://github.com/vestige/picoruby-cyw43-ap/issues/31#issuecomment-5980469546
+      - [ ] コードと文書の差分を利用者とレビューし、承認後にcommit/PRへ進める。
 
 ## PicoRuby coreの参照情報
 
