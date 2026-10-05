@@ -19,9 +19,57 @@ GitHub上のIssue、PRのタイトル・本文、検証コメントは原則と�
 このgemの主な役割は後者のAP/DHCP基盤を提供することです。実際の操作画面や
 HTTP通信は後続マイルストーンで扱い、既存のSTA用途を壊さないことも確認します。
 
-## 現在の状態（2026-09-11）
+## Pico TimerをMicroPython版から置き換える完成条件（2026-10-05）
 
-- このリポジトリは第三者mrbgem `picoruby-cyw43-ap` です。
+基準は利用者が実機で動かしているMicroPythonの
+[ptc/main.py](https://github.com/vestige/ptc/blob/main/main.py)です。
+作業中に参照内容が変わらないよう、確認した版は
+[commit `5275055`](https://github.com/vestige/ptc/blob/5275055db7994b5c954f834a9d7734154ed2b489/main.py)
+（添付されたコードとSHA-256が一致）と記録します。古い`pcw_timer.py`は基準にしません。
+この作業はgem本体のAP/DHCP API拡張とは分け、Issueごとにbranchを作って進めます。
+Issue #31でAP接続、画面、Set/Start/Stop/Reset、満了表示、手動更新、終了時の
+AP停止はPico 2 W + mruby/c実機で確認済みです。ただし現行例はHTTP requestが
+ない間に満了処理を実行せず、物理スイッチ・LED・ブザーも未実装です。
+
+- [ ] 参照元の`ptc/main.py`の操作規則、GP15/GP16/GP21の配線、
+      効果音、画面挙動を、認証情報を含めずにIssueへ記録して参照可能にする。
+- [ ] 最初に現行PicoRuby Coreの基点と、`GPIO`、`CYW43::GPIO`、`PWM`、
+      `Machine.board_millis`、`TCPServer#accept_nonblock`の利用条件を確認する。
+      通常のCore checkoutのtracked filesは変更せず、一時worktreeでビルドする。
+- [ ] HTTP requestがなくてもPico側で時刻を進める。タイマーの満了、入力の読取、
+      音の進行がsocket待受に妨げられない構成を選び、1秒・10秒の実時間試験と
+      3600秒境界のhost testで確認する。満了処理は各回1度だけ実行する。
+- [ ] 元の操作規則を決めて実装する。秒数の設定は同時に開始、Stop後の次のStartは
+      保存した秒数から再開始とし、現在のPicoRuby例の「Setのみ」「残り時間から再開」
+      との差を解消する。範囲は1〜3600秒とする。
+- [ ] GP15の外付けLEDを開始時に消灯、満了時に点灯し、LED Off操作または次の
+      開始まで点灯を保持する。ブラウザを閉じたまま満了させ、LEDとタイマー状態を
+      実機確認する。
+- [ ] GP16のGNDへ落とすタクトスイッチをpull-upで読み、1回の押下を1回の
+      操作として扱う。計測中は停止、満了LED点灯中は消灯、それ以外は保存秒数で
+      開始する。チャタリングと長押しによる重複操作を実機確認する。
+- [ ] GP21の圧電ブザーをPWMで駆動し、開始・停止・満了の効果音を再生する。
+      音の再生はHTTP、スイッチ、満了判定を止めず、終了時にはPWMを停止する。
+- [ ] Pico W/2 Wの内蔵LEDを動作中の目印として点滅させる。ブラウザの残り時間と
+      LED状態を自動更新し、通信失敗時・再接続後もPico側の状態と一致させる。
+- [ ] 元の`main.py`と同様にPicoを通常起動するだけでアプリが立ち上がる方法を
+      整理する。APの予期しない停止からの回復、Ctrl-Cや異常終了時のsocket・AP・
+      GPIO/PWMの後始末、スマホの通常Wi-Fi復旧を確認する。
+- [ ] Pico 2 W + mruby/cの実配線で、スマホを閉じたままの満了、スイッチのみの
+      操作、ブラウザ操作、再接続、複数回の開始・停止・満了を通しで検証する。
+      元のPico Wを置き換える完成判定では、Pico W + mruby/cでも同じ通し試験を行う。
+      host test、対象firmwareのビルド、実機ログ、未検証のVM構成を記録する。
+
+Core側の既知課題#510・#516・#524は現在クローズ済みで、外部gemのIssue/PRにも
+openのものはありません。現時点で上記を始める前に必須のCore修正は確認されて
+いません。[Core #439](https://github.com/picoruby/picoruby/issues/439)はSTA接続時の
+エラーコードと再試行に関する未解決の相談であり、このAP版Timerとは別に追います。
+Coreのローカルbranchやprunableな一時worktreeの整理は別の保守作業です。
+
+## 2026-09-11時点の状態記録
+
+- このリポジトリはPicoRuby本体とは別に開発したmrbgem
+  `picoruby-cyw43-ap`です。
 - `main` は `vestige/picoruby-cyw43-ap` の `origin/main` を追跡しています。
 - このリポジトリは、GitHub上のMIT License初期コミットを基点にしています。
 - 初回実装には、gem本体、英語・日本語ドキュメント、型シグネチャ、サンプルを
@@ -183,7 +231,9 @@ AP/DHCPマイルストーンが安定してから開始します。
           2/20でした。serialでは、最初のprobe responseをwrite・closeした後、次の
           接続でrequest read完了後の`client.write`から12秒以上戻りませんでした。
           ブラウザの10秒timeout後も復帰せず、Ctrl-Cでもcleanupやshell復帰は
-          起きませんでした。このため3周の成功条件は未達です。
+          起きませんでした。このため当時の3周成功条件は未達です。この項目は
+          過去の試験記録であり、現行Core `d392ce47`でのAP版60/60成功をIssue #22に
+          記録してclose済みのため、現在の前提作業ではありません。
         - [x] 再現結果とMicroPython比較を基に、別のPicoRuby Core Issueを
           作成するか最終判断する。#513後のclean bootでも再現し、MicroPythonでは
           同じ最大3件条件を60/60成功しているため、Core socket側の別Issueとして
@@ -413,7 +463,7 @@ AP/DHCPマイルストーンが安定してから開始します。
           shell復帰を確認した。初回接続時にブラウザへ残っていた試験ページが実行した
           20 requestも20/20成功した。結果をIssueへ記録し、`completed`としてcloseした。
           https://github.com/vestige/picoruby-cyw43-ap/issues/29#issuecomment-5966735758
-- [ ] [Issue #31](https://github.com/vestige/picoruby-cyw43-ap/issues/31)で、
+- [x] [Issue #31](https://github.com/vestige/picoruby-cyw43-ap/issues/31)で、
       Pico TimerのAP版フィジビリティとブラウザ向け動作を実装する。
       - [x] `main` `11317f6`から専用branch
         `issue-31/pico-timer-feasibility`を作る。検討開始時のCore upstream `master`は
@@ -454,7 +504,8 @@ AP/DHCPマイルストーンが安定してから開始します。
         復旧したことを利用者が確認した。
       - [x] 検証結果をREADME、日英TODO、Issueへ記録する。
         https://github.com/vestige/picoruby-cyw43-ap/issues/31#issuecomment-5980469546
-      - [ ] コードと文書の差分を利用者とレビューし、承認後にcommit/PRへ進める。
+      - [x] コードと文書の差分を利用者とレビューし、承認後に`46fd211`をcommitし、
+        [PR #32](https://github.com/vestige/picoruby-cyw43-ap/pull/32)をmergeした。
 
 ## PicoRuby coreの参照情報
 

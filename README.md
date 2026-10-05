@@ -1,62 +1,38 @@
 # picoruby-cyw43-ap
 
-`picoruby-cyw43-ap` is a third-party PicoRuby mrbgem that adds a minimal,
-DHCP-backed Wi-Fi access point to Raspberry Pi Pico W and Pico 2 W. It depends
-on `picoruby-cyw43` and uses the public Pico SDK `cyw43_arch_enable_ap_mode()`
-API and the public `cyw43_state` object. PicoRuby core does not need to be
-patched.
+A third-party PicoRuby mrbgem providing a DHCP-backed Wi-Fi access point for
+Raspberry Pi Pico W and Pico 2 W. It depends on `picoruby-cyw43` and uses public
+Pico SDK interfaces; no PicoRuby core patch is required. The gem provides AP
+and DHCP functionality, not an HTTP server.
 
-This first milestone intentionally contains no HTTP server or socket lifecycle
-code. It only owns AP start/stop, AP state and IPv4 inspection, and DHCP.
-
-Compilation and linking have been verified for Pico 2 W with mruby/c, Pico 2 W
-with mruby, and Pico W with mruby/c. On Pico 2 W with mruby/c, AP startup,
-client SSID discovery and connection, Ruby API state and IPv4 inspection, and
-AP shutdown have been verified on hardware. The client received
-`192.168.4.2/24` by DHCP with router `192.168.4.1`. During this validation, the
-client Wi-Fi settings screen continued to show a connecting indicator for
-about 10 seconds; the source of the delay is not yet known. A code audit
-verified that AP shutdown removes and clears the DHCP PCB reference and erases
-the lease array. Hardware validation also confirmed the inactive API state and
-disappearance of the SSID after shutdown.
-Without rebooting the Pico, the AP was then re-enabled and the client
-reconnected with the same DHCP settings. The second connection completed
-faster than the first, but the source of that difference is not yet known. On
-Pico 2 W with mruby/c, `CYW43.init("JP", force: true)` while the AP was active
-shut it down, reinitialized the driver, and allowed AP and DHCP reuse. The
-pre-force-init cleanup paths have been audited in both mruby/c and mruby
-bindings.
-An STA-only connection was also verified on the same Pico 2 W with mruby/c
-firmware without starting the AP. STA reached `LINK_UP` with assigned IPv4
-settings while `CYW43::AP` remained inactive, then returned to `LINK_DOWN`
-after disconnecting. The connection details were used only from encrypted
-device-local configuration and are not included in the validation record.
+[日本語版 README](README_ja.md)
 
 ## Install in R2P2
 
-Place this repository beside the PicoRuby repository and expose it to R2P2's
-current CMake source discovery with an untracked symlink:
+Place this repository beside the PicoRuby repository. In the PicoRuby checkout,
+make it visible to R2P2's current CMake source discovery with an untracked
+symlink:
 
 ```sh
 cd /path/to/picoruby
 ln -s ../../picoruby-cyw43-ap mrbgems/picoruby-cyw43-ap
 ```
 
-Add the gem to the desired R2P2 build configuration:
+Add the gem to the chosen R2P2 build configuration:
 
 ```ruby
 conf.gem gemdir: "#{MRUBY_ROOT}/mrbgems/picoruby-cyw43-ap"
 ```
 
-The mrbgem dependency loads `picoruby-cyw43` before this gem at build time.
-FemtoRuby applications should still require both runtime components in order:
+The mrbgem dependency loads `picoruby-cyw43` at build time. At runtime, require
+both components in this order:
 
 ```ruby
 require "cyw43"
 require "cyw43/ap"
 ```
 
-Example build commands supported by current PicoRuby build configurations are:
+Example build commands:
 
 ```sh
 R2P2_NO_SHARED_ALLOC=1 rake r2p2:femtoruby:pico_w:prod
@@ -64,11 +40,11 @@ rake r2p2:femtoruby:pico2_w:prod
 rake r2p2:picoruby:pico2_w:prod
 ```
 
-The current full Pico W configuration can exceed RP2040 RAM at link time with
-the default shared allocator size. `R2P2_NO_SHARED_ALLOC=1` selects the
-supported low-memory configuration used for the verified Pico W build.
+The Pico W full configuration may exceed RP2040 RAM with the default shared
+allocator. The first command uses the low-memory configuration verified at
+link time.
 
-## Usage
+## Basic usage
 
 ```ruby
 require "cyw43"
@@ -77,119 +53,36 @@ require "cyw43/ap"
 CYW43.init("JP")
 raise "AP start failed" unless CYW43::AP.enable("PicoRuby-AP", "12345678")
 
-puts CYW43::AP.active?       # true
-puts CYW43::AP.ssid          # PicoRuby-AP
-puts CYW43::AP.ipv4_address  # 192.168.4.1 with the Pico SDK default setup
-puts CYW43::AP.ipv4_netmask  # 255.255.255.0
+puts CYW43::AP.active?
+puts CYW43::AP.ssid
+puts CYW43::AP.ipv4_address
+puts CYW43::AP.ipv4_netmask
 
 CYW43::AP.disable
 ```
 
-### Minimal HTTP server example
+Use your own SSID and password. The password must be 8–63 bytes; the SSID must
+be 1–32 bytes. WPA2/AES PSK is the default authentication mode; a Pico SDK
+authentication value can be passed as the third argument. The DHCP server
+offers four client addresses (host numbers 2–5). With the Pico SDK default
+network, the AP is `192.168.4.1` and leases are `192.168.4.2`–`192.168.4.5`.
 
-[`example/pico_w_ap_http_server.rb`](example/pico_w_ap_http_server.rb) is a
-minimal HTTP server that returns plain text to a browser connected to the AP.
-The example also requires `picoruby-socket`. Add both this gem and
-`picoruby-socket` to the build configuration, then load `cyw43`, `cyw43/ap`,
-and `socket` at runtime.
+## Examples
 
-The example's `SSID` and `PASSWORD` are public sample values. Change them on
-the device when necessary, and do not commit real credentials to Git. After
-startup, open the displayed URL in a browser on a device connected to the AP.
-The example closes the client socket after each response and closes the server
-socket and disables the AP when it exits.
+- [Minimal HTTP server](example/pico_w_ap_http_server.rb): plain-text response
+  to a browser connected to the AP.
+- [AP Pico Timer](example/pico_w_ap_timer.rb): feasibility example with Set,
+  Start, Stop, Reset, expiry, and manual status refresh.
+- [Concurrent HTTP diagnostic](example/pico_w_ap_http_concurrent_test.rb):
+  browser-driven request test, not a production server.
 
-On Pico 2 W with mruby/c, the example was verified to return its plain-text
-response to a browser and to leave the AP inactive after a clean Ctrl-C exit.
-
-### AP Pico Timer feasibility example
-
-[`example/pico_w_ap_timer.rb`](example/pico_w_ap_timer.rb) is a separate
-application example using this gem and `picoruby-socket`. On Pico 2 W with
-mruby/c and Core `d392ce47`, the browser displayed the timer, and Set, Start,
-Stop, Reset, expiry, and manual status refresh worked on hardware. Ctrl-C
-disabled the AP and returned to the shell. The SSID disappeared, and the
-client returned to its usual Wi-Fi with internet access. The example has been
-tested as a precompiled `.mrb`; this does not establish mruby or Pico W
-hardware behavior.
-
-The timer stores its mutable state in an ordinary class instance. On this
-firmware, a small shell-run probe stalled when assigning an instance variable
-on a module object, while ordinary class instance assignment worked. The
-HTTP server also closes connections that send no first byte within 500 ms.
-Before that change, such a connection held the single-request server for
-about 5.6 seconds and delayed the next button action. After the change, the
-idle connection closed in about 0.56 seconds and valid Start/Stop requests
-completed on the Pico in 8 ms or less. The browser response was visibly
-faster in the hardware retest.
-
-Twenty sequential HTTP requests to the same AP and server instance were also
-verified on hardware. All responses had the expected status, Content-Length,
-and body; each client socket was closed, and the AP stopped afterward. Two
-PicoRuby socket lifecycle limitations were observed: after the 20 connections,
-the same port could not be rebound even after waiting more than two minutes and
-became available after rebooting the Pico; and interrupting
-`TCPServer#accept` with Ctrl-C closes the server before its internal next
-nonblocking accept raises `server is not initialized`. These are follow-up
-socket lifecycle observations tracked in Issue #16; the errors above describe
-the firmware used at that time, not the result of the later fixes.
-
-Core [PR #506](https://github.com/picoruby/picoruby/pull/506) merged the
-same-port rebind fix. Core [PR #513](https://github.com/picoruby/picoruby/pull/513)
-superseded the unmerged [PR #509](https://github.com/picoruby/picoruby/pull/509)
-and fixed Ctrl-C handling during blocking socket waits. On a Pico 2 W with
-mruby/c and Core `729d9d55` containing #513, two hardware runs confirmed AP
-shutdown, shell return, and immediate same-port rebind after Ctrl-C without a
-lifecycle error. Core [Issue #507](https://github.com/picoruby/picoruby/issues/507)
-was closed with this result. An AP/socket-free unhandled `Interrupt` script
-still stopped during its second invocation on the same firmware; that separate
-shell/VM task recovery problem remains open as Core
-[Issue #510](https://github.com/picoruby/picoruby/issues/510).
-
-On Pico 2 W with mruby/c and Core commit `95bf98ac` from PR #509, 21
-sequential browser reloads in the same tab completed immediately with the
-expected response. The original example could block in `client.gets` on an
-additional connection opened by the browser and did not consume the complete
-HTTP request header. The example now reads through the header terminator with
-nonblocking reads, rejects headers larger than 4 KiB, and closes an incomplete
-client after a 5-second timeout. After the 21 requests, Ctrl-C stopped the
-server, disabled the AP, and returned to the shell without a cleanup error.
-An independent status check reported the AP inactive and its SSID cleared.
-
-[`example/pico_w_ap_http_concurrent_test.rb`](example/pico_w_ap_http_concurrent_test.rb)
-is a hardware diagnostic that starts 20 browser requests with a maximum
-concurrency of three. Opening its URL runs the test automatically and reports
-either `20/20 passed` or the requests that timed out. The button runs it again.
-
-On Pico 2 W with mruby/c and Core `95bf98ac`, maximum concurrency one passed
-20/20, concurrency two passed 60/60, and the first 40 requests at concurrency
-three passed. During a later concurrency-three run, seven requests completed
-before the next `client.write` failed to return after reading its request; the
-remaining browser requests reached their 10-second timeout. A clean-boot
-revalidation with Core `729d9d55` containing PR #513 showed 2/20 in the
-browser and again remained inside `client.write` for more than 12 seconds
-after the request read had completed. Neither the browser timeout nor Ctrl-C
-recovered it. This has not been attributed to the AP gem; Core
-[Issue #516](https://github.com/picoruby/picoruby/issues/516) tracks the
-RP2040/RP2350 TCP send path. External-gem details remain in Issues #22 and #26.
-
-For a hardware comparison, official MicroPython v1.29.0 was installed on a
-new Pico 2 W and tested with
-[`comparison/micropython_ap_http_comparison.py`](comparison/micropython_ap_http_comparison.py).
-Maximum concurrency one passed 20/20; concurrency two and three each passed
-60/60 over three runs. Every read, `sendall`, and close completed without
-error. Board-to-board variation is not excluded, but this lowers the likelihood
-that three small concurrent HTTP responses exceed a basic Pico 2 W performance
-limit. The server and AP
-also stopped cleanly and returned to the MicroPython REPL.
-
-The password must contain 8 through 63 bytes and the SSID must contain 1
-through 32 bytes. WPA2/AES PSK is the default authentication mode. An explicit
-Pico SDK authentication value may be supplied as the third argument.
-
-The DHCP server derives its network from the AP netif created by Pico SDK and
-offers four addresses, host numbers 2 through 5. With the SDK default network,
-these are `192.168.4.2` through `192.168.4.5`.
+The HTTP examples also require `picoruby-socket` in the build configuration and
+`require "socket"` at runtime. Their SSIDs and passwords are public sample
+values; do not commit real credentials. Each example closes its sockets and
+disables the AP when it exits. The Timer example's behavior and cleanup were
+verified on Pico 2 W with mruby/c using a precompiled `.mrb`; Pico W and mruby
+hardware behavior are not yet verified. The example's [host smoke test](example/pico_w_ap_timer_host_smoke.rb)
+runs under CRuby and PicoRuby host.
 
 ## API
 
@@ -200,33 +93,31 @@ these are `192.168.4.2` through `192.168.4.5`.
 - `CYW43::AP.ipv4_address -> String | nil`
 - `CYW43::AP.ipv4_netmask -> String | nil`
 
-For migration from PicoRuby PR #489, the same methods are also available below
-the isolated namespace as `enable_ap_mode`, `disable_ap_mode`, `ap_active?`,
-`ap_ssid`, `ap_ipv4_address`, and `ap_ipv4_netmask`. Change `CYW43.` to
-`CYW43::AP.` at the call site. The gem deliberately does not add methods to the
-top-level `CYW43` class, preventing a future PicoRuby core API collision.
+For migration from PicoRuby PR #489, aliases under `CYW43::AP` are available:
+`enable_ap_mode`, `disable_ap_mode`, `ap_active?`, `ap_ssid`,
+`ap_ipv4_address`, and `ap_ipv4_netmask`. This gem adds no methods to the
+top-level `CYW43` class.
 
-## Resource lifecycle
+## Validation and limitations
 
-`CYW43::AP.disable` removes the DHCP UDP PCB and leases before disabling the AP
-interface. The mruby gem finalizer performs the same cleanup. Both mruby and
-mruby/c bindings wrap the existing private Ruby entry point used by
-`CYW43.init(force: true)` and stop AP/DHCP before delegating to the original
-core implementation.
+Compilation and linking were verified for Pico 2 W with mruby/c and mruby, and
+Pico W with mruby/c. AP, DHCP, shutdown, re-enable, forced-init cleanup, and
+STA-only regression were verified on Pico 2 W with mruby/c. Other board/VM
+combinations have not been verified on hardware. Detailed test history and
+follow-up socket/Core issues are in [TODO.md](TODO.md) and the linked Issues;
+the HTTP examples are not part of the gem's AP/DHCP implementation.
 
-Native applications that call Pico SDK deinitialization directly must call the
-public gem C function `picoruby_cyw43_ap_prepare_deinit()` first. The gem does
-not replace SDK symbols or depend on PicoRuby core's C wrapper internals.
+The gem supports one AP interface and four DHCP leases. It does not provide a
+custom AP network, DNS, NAT, captive portal, built-in HTTP server, or
+station-count API. STA remains owned by `picoruby-cyw43`.
 
-## Scope and limitations
-
-- Raspberry Pi Pico W and Pico 2 W only.
-- One AP interface and one four-lease DHCP pool.
-- No custom AP network, DNS, NAT, captive portal, HTTP server, or station-count API.
-- STA behavior remains owned by `picoruby-cyw43` and is not modified.
+`CYW43::AP.disable` releases the DHCP UDP PCB and leases before disabling the
+AP. The mruby finalizer and `CYW43.init(force: true)` cleanup path also stop
+AP/DHCP. Native applications that deinitialize Pico SDK directly must call
+`picoruby_cyw43_ap_prepare_deinit()` first.
 
 ## License and attribution
 
-The gem is distributed under the MIT License; see [LICENSE](LICENSE).
-`ports/rp2040/ap_dhcp_server.c` is adapted from TinyUSB networking helpers and
-retains the MIT notice and copyright of Sergey Fetisov from PicoRuby PR #489.
+MIT License; see [LICENSE](LICENSE).
+`ports/rp2040/ap_dhcp_server.c` is adapted from TinyUSB networking helpers
+and retains Sergey Fetisov's copyright and MIT notice from PicoRuby PR #489.

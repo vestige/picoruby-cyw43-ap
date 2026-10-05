@@ -22,7 +22,61 @@ This gem primarily provides the AP and DHCP foundation for the second use case.
 The user interface and HTTP communication belong to a later milestone. The
 existing STA use case must continue to work without regression.
 
-## Current state (2026-09-11)
+## Completion criteria for replacing the MicroPython Pico Timer (2026-10-05)
+
+The reference is the MicroPython
+[ptc/main.py](https://github.com/vestige/ptc/blob/main/main.py) currently
+running on the user's hardware. The reviewed version is
+[commit `5275055`](https://github.com/vestige/ptc/blob/5275055db7994b5c954f834a9d7734154ed2b489/main.py),
+whose SHA-256 matches the attached source. Unlike the old `pcw_timer.py`, it
+includes the button and buzzer. Keep application work separate from the gem's
+AP/DHCP API and use a branch for each Issue. Issue #31 already validated AP
+connection, the page, Set/Start/Stop/Reset, expiry display, manual refresh,
+and AP shutdown on Pico 2 W with mruby/c. The present example does not process
+expiry while no HTTP request arrives, and has no physical button, LED, or
+buzzer integration.
+
+- [ ] Record the linked `ptc/main.py`'s controls, GP15/GP16/GP21 wiring,
+      melodies, and browser behavior in an Issue without including credentials.
+- [ ] Confirm the current PicoRuby Core baseline and availability of `GPIO`,
+      `CYW43::GPIO`, `PWM`, `Machine.board_millis`, and
+      `TCPServer#accept_nonblock`. Build in a temporary worktree without
+      changing tracked files in the normal Core checkout.
+- [ ] Advance time on the Pico without HTTP requests. Choose a design in which
+      socket waiting does not block expiry, input polling, or sound playback.
+      Test real 1- and 10-second intervals and the 3600-second boundary in a
+      host test. Process each expiry only once.
+- [ ] Match the original control semantics: setting seconds also starts the
+      timer; after Stop, the next Start begins from the saved duration rather
+      than resuming the remainder. Support 1–3600 seconds.
+- [ ] Turn the external GP15 LED off at start and on at expiry, and keep it on
+      until LED Off or the next start. Verify expiry and LED state with the
+      browser closed.
+- [ ] Read the GP16 button wired to GND with pull-up. Treat one press as one
+      action: running → Stop; expiry LED on → LED Off; otherwise → Start with
+      saved seconds. Verify debounce and no repeated action while held.
+- [ ] Drive the GP21 piezo buzzer with PWM. Play non-blocking start, stop, and
+      expiry sounds, and stop PWM during cleanup.
+- [ ] Blink the onboard Pico W/2 W LED as a heartbeat. Auto-refresh browser
+      remaining time and LED state, including after transient request failure
+      and reconnection.
+- [ ] Arrange startup by normal boot as in the original `main.py`. Verify
+      recovery from an unexpectedly inactive AP, cleanup of sockets, AP,
+      GPIO/PWM on Ctrl-C or error, and restoration of the client's usual Wi-Fi.
+- [ ] Run the full scenario with the original wiring on Pico 2 W + mruby/c:
+      expiry with the browser closed, button-only operation, browser control,
+      reconnection, and repeated start/stop/expiry. To claim replacement of
+      the original Pico W, repeat the full scenario on Pico W + mruby/c. Record
+      host tests, firmware builds, hardware logs, and unverified VM combinations.
+
+Core #510, #516, and #524 are currently closed, and this gem has no open
+Issues or PRs. No mandatory Core fix has been identified before starting this
+work. [Core #439](https://github.com/picoruby/picoruby/issues/439) remains open
+for STA connection errors and retry policy; it is separate from the AP Timer.
+Cleanup of local Core branches and prunable temporary worktrees is separate
+maintenance work.
+
+## State recorded on 2026-09-11
 
 - This repository is the third-party `picoruby-cyw43-ap` mrbgem.
 - `main` tracks `origin/main` at `vestige/picoruby-cyw43-ap`.
@@ -215,7 +269,10 @@ Start this only after the AP/DHCP milestone is stable:
           request read and remained inside `client.write` for more than 12
           seconds. It did not recover after the browser's 10-second timeout,
           and Ctrl-C produced neither cleanup nor a shell prompt. The
-          three-round success criterion therefore remains unmet.
+          three-round success criterion therefore remained unmet at that time.
+          This is historical test output, not a current prerequisite: the
+          AP-based test later passed 60/60 on Core `d392ce47` and Issue #22
+          was closed with that result.
         - [x] Use the result and MicroPython comparison to decide whether to
           open a separate PicoRuby Core issue. Report this as a separate Core
           socket issue because it reproduced from a clean boot after #513,
@@ -517,7 +574,7 @@ Start this only after the AP/DHCP milestone is stable:
           run at 20/20 during the first connection. Record the result in the
           Issue and close it as `completed`.
           https://github.com/vestige/picoruby-cyw43-ap/issues/29#issuecomment-5966735758
-- [ ] In [Issue #31](https://github.com/vestige/picoruby-cyw43-ap/issues/31),
+- [x] In [Issue #31](https://github.com/vestige/picoruby-cyw43-ap/issues/31),
       implement the AP-based Pico Timer feasibility application and revisit its
       browser-facing behavior.
       - [x] Create `issue-31/pico-timer-feasibility` from `main` at `11317f6`.
@@ -568,8 +625,9 @@ Start this only after the AP/DHCP milestone is stable:
         internet access.
       - [x] Record the result in the README files, both TODO files, and the Issue.
         https://github.com/vestige/picoruby-cyw43-ap/issues/31#issuecomment-5980469546
-      - [ ] Review the code and documentation changes with the user, then
-        proceed to commit and PR after approval.
+      - [x] Review the code and documentation changes with the user, then
+        commit `46fd211` and merge [PR #32](https://github.com/vestige/picoruby-cyw43-ap/pull/32)
+        after approval.
 
 ## PicoRuby core references
 
