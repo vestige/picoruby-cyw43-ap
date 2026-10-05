@@ -98,6 +98,25 @@ APへ接続した端末のブラウザで開きます。例は各HTTP応答後�
 Pico 2 W + mruby/cの実機で、ブラウザにplain textの応答が表示されることと、
 Ctrl-C終了後に例外を出さずAPがinactiveになることを確認済みです。
 
+### AP版Pico Timerのフィジビリティ例
+
+[`example/pico_w_ap_timer.rb`](example/pico_w_ap_timer.rb) は、このgemと
+`picoruby-socket`を使う別のアプリケーション例です。Core `d392ce47`、
+Pico 2 W + mruby/cの実機で、Timer画面の表示、Set、Start、Stop、Reset、
+満了、手動の状態更新を確認しました。Ctrl-CでAPが停止し、shellへ戻りました。
+SSIDが一覧から消え、クライアントが普段のWi-Fiへ戻ってインターネットを利用できる
+ことも確認しました。
+実行には事前コンパイルした`.mrb`を使用しており、mrubyやPico Wでの実機動作は
+まだ確認していません。
+
+Timerの可変状態は通常のclass instanceに保持しています。このfirmwareでshellから
+動かした小さなprobeでは、module自身へのinstance variable代入で停止し、通常の
+class instanceへの代入は成功しました。またHTTP serverは、最初の1 byteを500ms
+以内に送らない接続を閉じます。修正前は、このような接続が単一request処理のserverを
+約5.6秒占有し、次のボタン操作を遅らせていました。修正後は約0.56秒で閉じられ、
+有効なStart/Stop requestはPico上で8ms以内に完了しました。実機のブラウザでも
+表示が速くなったことを確認しています。
+
 同じAP・server instanceに対する20回の逐次HTTP requestも実機確認済みです。
 20回すべてで期待するstatus、Content-Length、本文を受信し、各client socketを
 closeした後、APは自動停止しました。一方、20接続後にAPとserverを停止すると、

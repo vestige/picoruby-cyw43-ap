@@ -102,6 +102,27 @@ socket and disables the AP when it exits.
 On Pico 2 W with mruby/c, the example was verified to return its plain-text
 response to a browser and to leave the AP inactive after a clean Ctrl-C exit.
 
+### AP Pico Timer feasibility example
+
+[`example/pico_w_ap_timer.rb`](example/pico_w_ap_timer.rb) is a separate
+application example using this gem and `picoruby-socket`. On Pico 2 W with
+mruby/c and Core `d392ce47`, the browser displayed the timer, and Set, Start,
+Stop, Reset, expiry, and manual status refresh worked on hardware. Ctrl-C
+disabled the AP and returned to the shell. The SSID disappeared, and the
+client returned to its usual Wi-Fi with internet access. The example has been
+tested as a precompiled `.mrb`; this does not establish mruby or Pico W
+hardware behavior.
+
+The timer stores its mutable state in an ordinary class instance. On this
+firmware, a small shell-run probe stalled when assigning an instance variable
+on a module object, while ordinary class instance assignment worked. The
+HTTP server also closes connections that send no first byte within 500 ms.
+Before that change, such a connection held the single-request server for
+about 5.6 seconds and delayed the next button action. After the change, the
+idle connection closed in about 0.56 seconds and valid Start/Stop requests
+completed on the Pico in 8 ms or less. The browser response was visibly
+faster in the hardware retest.
+
 Twenty sequential HTTP requests to the same AP and server instance were also
 verified on hardware. All responses had the expected status, Content-Length,
 and body; each client socket was closed, and the AP stopped afterward. Two

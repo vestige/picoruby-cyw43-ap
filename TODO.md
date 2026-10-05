@@ -517,7 +517,59 @@ Start this only after the AP/DHCP milestone is stable:
           run at 20/20 during the first connection. Record the result in the
           Issue and close it as `completed`.
           https://github.com/vestige/picoruby-cyw43-ap/issues/29#issuecomment-5966735758
-- [ ] Revisit the Pico Timer application and browser-facing behavior.
+- [ ] In [Issue #31](https://github.com/vestige/picoruby-cyw43-ap/issues/31),
+      implement the AP-based Pico Timer feasibility application and revisit its
+      browser-facing behavior.
+      - [x] Create `issue-31/pico-timer-feasibility` from `main` at `11317f6`.
+        The Core upstream `master` at the start of this work is `d392ce47`.
+      - [x] Use the old `codex/pcw-timer-replacement` only as reference; do not
+        port the branch wholesale to current Core. Select only reusable pure
+        Timer logic and UI pieces.
+      - [x] Do not carry credentials from the historical STA example into the
+        new implementation, and confirm by search that the new files do not
+        contain them. If they remain valid, the user should rotate them; decide
+        how to handle the remote branch separately and explicitly.
+      - [x] Using the current `CYW43::AP` API and the validated HTTP-server
+        lifecycle, implement `example/pico_w_ap_timer.rb` with duration setting,
+        start, stop, reset, remaining-time display, and state display. Avoid
+        automatic polling, refresh state manually, and send response bodies in
+        512-byte chunks.
+      - [x] Confirm that current Core exposes `Machine.board_millis` to both
+        mruby/c and mruby. Review HTML and response size, chunked writes, and
+        host-test scope. The Timer state and every route pass
+        `example/pico_w_ap_timer_host_smoke.rb` under both CRuby and the PicoRuby
+        host runtime, and both files compile with PicoRuby `mrbc`.
+      - [x] Build Pico 2 W + mruby/c in the disposable Core worktree without
+        modifying the normal Core checkout. At Core `d392ce47`, the UF2 is
+        3,914,752 bytes with SHA-256
+        `ce64d21d2f80254a2223043ec18dfac3b8a6d2c4392e8f32aa004cb39f080fd9`.
+      - [x] Separate the historical and current execution conditions before
+        retrying the full Timer on hardware. The old AP Timer was a WIP at Core
+        `b526e123`, and its README did not record a completed hardware run. The
+        later firmware-embedded, dedicated-VM boot path was for the STA Timer,
+        so it is not equivalent to running the current app through shell
+        `Sandbox#load_file`. Staged probes passed for `.mrb` loading, requires,
+        constants, local variables, and ordinary class instance variables.
+        Assignment to an instance variable on the module itself stalled.
+        Moving Timer state to an ordinary class instance allowed AP startup and
+        browser rendering.
+      - [x] On hardware, verify the page, Timer controls and expiry, state after
+        reload, Ctrl-C, AP cleanup, shell return, and recovery of normal Wi-Fi.
+        Page, Set/Start/Stop/Reset, expiry, Ctrl-C, `AP active?: false`, and
+        shell return passed. Before the timeout change, the user observed about
+        3 seconds after Start and 3–6 seconds after Stop; serial also showed
+        `HTTP request timeout` and `send failed`. Valid Start/Stop requests
+        finished in at most 8 ms, while an earlier connection with no request
+        data held the server for about 5.6 seconds. With a 500 ms first-byte
+        timeout, the empty connection closed in about 0.56 seconds. The version
+        without diagnostic logging also responded quickly to one click. Ctrl-C
+        again disabled AP and returned to the shell. The user confirmed the
+        SSID disappeared and the client returned to its usual Wi-Fi with
+        internet access.
+      - [x] Record the result in the README files, both TODO files, and the Issue.
+        https://github.com/vestige/picoruby-cyw43-ap/issues/31#issuecomment-5980469546
+      - [ ] Review the code and documentation changes with the user, then
+        proceed to commit and PR after approval.
 
 ## PicoRuby core references
 
