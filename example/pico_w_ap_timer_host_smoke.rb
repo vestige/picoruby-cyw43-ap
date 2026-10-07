@@ -1,11 +1,21 @@
 module Machine
   @board_millis = 0
+  @signal_checks = 0
+  @signal_self_managed = false
 
   class << self
-    attr_accessor :board_millis
+    attr_accessor :board_millis, :signal_checks, :signal_self_managed
 
     def advance(milliseconds)
       @board_millis += milliseconds
+    end
+
+    def check_signal
+      @signal_checks += 1
+    end
+
+    def signal_self_manage
+      @signal_self_managed = true
     end
   end
 end
@@ -34,6 +44,7 @@ class FakeClient
   def initialize(target)
     @request = "GET #{target} HTTP/1.1\r\nHost: 192.168.4.1\r\n\r\n"
     @written = ""
+    @closed = false
   end
 
   def read_nonblock(maximum_length)
@@ -48,11 +59,29 @@ class FakeClient
     @written << data.to_s
     data.to_s.bytesize
   end
+
+  def close
+    @closed = true
+  end
+
+  def closed?
+    @closed
+  end
 end
 
 class FakeSilentClient < FakeClient
   def read_nonblock(_maximum_length)
     nil
+  end
+end
+
+class FakeServer
+  def initialize(clients = [])
+    @clients = clients
+  end
+
+  def accept_nonblock
+    @clients.shift
   end
 end
 
@@ -89,10 +118,30 @@ raise "configured duration mismatch" unless PicoTimerApp.timer_duration_seconds 
 raise "configure did not reset timer" unless PicoTimerApp.timer_remaining_seconds == 5
 raise "configure left timer expired" if PicoTimerApp.timer_expired?
 
+PicoTimerApp.configure_timer(0)
+raise "minimum duration was not clamped" unless PicoTimerApp.timer_duration_seconds == 1
+PicoTimerApp.configure_timer(3_601)
+raise "maximum duration was not clamped" unless PicoTimerApp.timer_duration_seconds == 3_600
+
+PicoTimerApp.configure_timer(1)
+PicoTimerApp.start_timer
+idle_server = FakeServer.new
+100.times do
+  raise "idle service unexpectedly accepted a client" if PicoTimerApp.service_once(idle_server)
+end
+raise "idle timer did not expire" unless PicoTimerApp.timer_expired?
+raise "idle timer still running" if PicoTimerApp.timer_running?
+raise "idle timer has remaining time" unless PicoTimerApp.timer_remaining_seconds == 0
+10.times { PicoTimerApp.service_once(idle_server) }
+raise "expired state changed during idle service" unless PicoTimerApp.timer_expired?
+raise "service loop did not check signals" unless 110 <= Machine.signal_checks
+
 root_client = FakeClient.new("/")
-PicoTimerApp.handle_client(root_client)
+root_server = FakeServer.new([root_client])
+raise "service did not accept a queued client" unless PicoTimerApp.service_once(root_server)
 raise "root route failed" unless root_client.written.include?("200 OK")
 raise "root page missing title" unless root_client.written.include?("PicoRuby Timer")
+raise "service did not close the client" unless root_client.closed?
 
 set_client = FakeClient.new("/set?seconds=12")
 PicoTimerApp.handle_client(set_client)

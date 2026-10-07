@@ -36,16 +36,35 @@ and AP shutdown on Pico 2 W with mruby/c. The present example does not process
 expiry while no HTTP request arrives, and has no physical button, LED, or
 buzzer integration.
 
-- [ ] Record the linked `ptc/main.py`'s controls, GP15/GP16/GP21 wiring,
-      melodies, and browser behavior in an Issue without including credentials.
-- [ ] Confirm the current PicoRuby Core baseline and availability of `GPIO`,
+- [x] Record the linked `ptc/main.py`'s controls, GP15/GP16/GP21 wiring,
+      melodies, and browser behavior without credentials in
+      [Issue #34](https://github.com/vestige/picoruby-cyw43-ap/issues/34).
+- [x] Confirm Core `a90afd12` and availability of `GPIO`,
       `CYW43::GPIO`, `PWM`, `Machine.board_millis`, and
-      `TCPServer#accept_nonblock`. Build in a temporary worktree without
-      changing tracked files in the normal Core checkout.
-- [ ] Advance time on the Pico without HTTP requests. Choose a design in which
+      `TCPServer#accept_nonblock`. All required APIs exist in current upstream;
+      the Core AP/Timer files initially seen were only on an old unmerged local
+      branch and do not overlap this gem. The normal Core checkout's tracked
+      files remain unchanged; use a temporary worktree for the hardware build.
+- [x] In [Issue #34](https://github.com/vestige/picoruby-cyw43-ap/issues/34),
+      advance time on the Pico without HTTP requests. Choose a design in which
       socket waiting does not block expiry, input polling, or sound playback.
       Test real 1- and 10-second intervals and the 3600-second boundary in a
       host test. Process each expiry only once.
+      - [x] Add a 10 ms service loop using `accept_nonblock`. The CRuby host
+        smoke test covers simulated one-second idle expiry, stable expired
+        state, 1–3600 second clamping, client handling, and client close. Both
+        files compile with `mrbc`.
+      - [x] Build Pico 2 W + mruby/c from current Core `a90afd12` in a temporary
+        worktree. Confirm UF2 generation and the linked external-gem symbol.
+      - [x] On Pico 2 W hardware, verify real 1- and 10-second idle expiry,
+        stable expired state, the page after expiry, and Set, Start, Stop,
+        resume, and Reset. The first `accept_nonblock` version exposed that
+        Sandbox stops the task externally on Ctrl-C without unwinding Ruby
+        `ensure`, leaving `CYW43::AP.active?` true. The final version uses
+        `Machine.signal_self_manage` and calls `Machine.check_signal` in the
+        service loop. After another 10-second idle expiry, Ctrl-C printed
+        `Stopping Pico Timer` and `AP active?: false`, returned to the shell,
+        and removed the SSID.
 - [ ] Match the original control semantics: setting seconds also starts the
       timer; after Stop, the next Start begins from the saved duration rather
       than resuming the remainder. Support 1–3600 seconds.

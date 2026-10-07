@@ -31,14 +31,30 @@ Issue #31でAP接続、画面、Set/Start/Stop/Reset、満了表示、手動更�
 AP停止はPico 2 W + mruby/c実機で確認済みです。ただし現行例はHTTP requestが
 ない間に満了処理を実行せず、物理スイッチ・LED・ブザーも未実装です。
 
-- [ ] 参照元の`ptc/main.py`の操作規則、GP15/GP16/GP21の配線、
-      効果音、画面挙動を、認証情報を含めずにIssueへ記録して参照可能にする。
-- [ ] 最初に現行PicoRuby Coreの基点と、`GPIO`、`CYW43::GPIO`、`PWM`、
+- [x] 参照元の`ptc/main.py`の操作規則、GP15/GP16/GP21の配線、
+      効果音、画面挙動を、認証情報を含めずに
+      [Issue #34](https://github.com/vestige/picoruby-cyw43-ap/issues/34)へ記録した。
+- [x] 現行PicoRuby Core `a90afd12`を確認し、`GPIO`、`CYW43::GPIO`、`PWM`、
       `Machine.board_millis`、`TCPServer#accept_nonblock`の利用条件を確認する。
-      通常のCore checkoutのtracked filesは変更せず、一時worktreeでビルドする。
-- [ ] HTTP requestがなくてもPico側で時刻を進める。タイマーの満了、入力の読取、
+      必要なAPIは最新upstreamに存在し、Core内のAP/Timer例に見えたものは手元の
+      未merge branchだけの内容で、外部gemとは重複していない。通常のCore checkoutの
+      tracked filesは変更していない。実機用buildは一時worktreeで行う。
+- [x] [Issue #34](https://github.com/vestige/picoruby-cyw43-ap/issues/34)で、
+      HTTP requestがなくてもPico側で時刻を進める。タイマーの満了、入力の読取、
       音の進行がsocket待受に妨げられない構成を選び、1秒・10秒の実時間試験と
       3600秒境界のhost testで確認する。満了処理は各回1度だけ実行する。
+      - [x] `accept_nonblock`を使う10ms間隔のservice loopを実装し、接続なしの
+        仮想1秒満了、満了状態の保持、1〜3600秒の境界、接続処理とclient closeを
+        CRuby host smoke testで確認した。両ファイルの`mrbc`コンパイルも成功した。
+      - [x] 最新Core `a90afd12`の一時worktreeでPico 2 W + mruby/cをbuildした。
+        外部gemを含むUF2の生成とリンク済みシンボルを確認した。
+      - [x] Pico 2 W実機で1秒・10秒の無通信満了と満了状態の保持、満了後の画面、
+        Set・Start・Stop・再開・Resetを確認した。最初の`accept_nonblock`版では
+        SandboxがCtrl-C時にtaskを外側から停止し、Rubyの`ensure`を実行しないため
+        `CYW43::AP.active?`が`true`のまま残ることを検出した。
+        `Machine.signal_self_manage`とservice loop内の`Machine.check_signal`で
+        `Interrupt`をtask内で処理するよう修正した最終版では、10秒の無通信満了後も
+        `Stopping Pico Timer`、`AP active?: false`、shell復帰、SSID消失を確認した。
 - [ ] 元の操作規則を決めて実装する。秒数の設定は同時に開始、Stop後の次のStartは
       保存した秒数から再開始とし、現在のPicoRuby例の「Setのみ」「残り時間から再開」
       との差を解消する。範囲は1〜3600秒とする。
