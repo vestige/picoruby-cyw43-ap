@@ -88,6 +88,7 @@ module PicoTimerApp
   HTTP_REQUEST_TIMEOUT_MS = 5000
   HTTP_POLL_INTERVAL_MS = 10
   HTTP_RESPONSE_CHUNK_SIZE = 512
+  SERVICE_LOOP_INTERVAL_MS = 10
   DEFAULT_SECONDS = 10
   MAX_SECONDS = 60 * 60
 
@@ -136,6 +137,7 @@ module PicoTimerApp
 
     def run
       puts "Pico Timer starting"
+      Machine.signal_self_manage
       CYW43.init("JP")
       raise "failed to enable AP mode" unless CYW43::AP.enable(AP_SSID, AP_PASSWORD)
 
@@ -147,16 +149,7 @@ module PicoTimerApp
         puts "AP started: #{CYW43::AP.ssid}"
         puts "Open http://#{address}/"
 
-        loop do
-          client = server.accept
-          begin
-            handle_client(client)
-          rescue => e
-            puts "HTTP error: #{e.class}: #{e.message}"
-          ensure
-            client.close
-          end
-        end
+        loop { service_once(server) }
       rescue Interrupt
         puts "Stopping Pico Timer"
       ensure
@@ -168,6 +161,25 @@ module PicoTimerApp
           puts "AP active?: #{CYW43::AP.active?}"
         end
       end
+    end
+
+    def service_once(server)
+      Machine.check_signal
+      update_timer
+      client = server.accept_nonblock
+      unless client
+        sleep_ms(SERVICE_LOOP_INTERVAL_MS)
+        return false
+      end
+
+      begin
+        handle_client(client)
+      rescue => e
+        puts "HTTP error: #{e.class}: #{e.message}"
+      ensure
+        client.close
+      end
+      true
     end
 
     def handle_client(client)
