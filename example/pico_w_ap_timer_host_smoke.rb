@@ -92,12 +92,12 @@ source = source.lines.reject do |line|
 end.join
 eval(source, nil, source_path)
 
-PicoTimerApp.configure_timer(10)
 raise "initial duration mismatch" unless PicoTimerApp.timer_duration_seconds == 10
 raise "initial remaining mismatch" unless PicoTimerApp.timer_remaining_seconds == 10
 raise "timer started unexpectedly" if PicoTimerApp.timer_running?
 
-PicoTimerApp.start_timer
+PicoTimerApp.configure_timer(10)
+raise "configure did not start timer" unless PicoTimerApp.timer_running?
 Machine.advance(3_100)
 raise "running timer stopped early" unless PicoTimerApp.timer_running?
 raise "remaining time mismatch" unless PicoTimerApp.timer_remaining_seconds == 7
@@ -109,13 +109,17 @@ raise "stopped timer changed" unless PicoTimerApp.timer_remaining_seconds == sto
 
 PicoTimerApp.start_timer
 Machine.advance(7_000)
+raise "restart resumed the old remainder" unless PicoTimerApp.timer_running?
+raise "restart did not use configured duration" unless PicoTimerApp.timer_remaining_seconds == 3
+Machine.advance(3_000)
 raise "timer did not expire" unless PicoTimerApp.timer_expired?
 raise "expired timer still running" if PicoTimerApp.timer_running?
 raise "expired timer has remaining time" unless PicoTimerApp.timer_remaining_seconds == 0
 
 PicoTimerApp.configure_timer(5)
 raise "configured duration mismatch" unless PicoTimerApp.timer_duration_seconds == 5
-raise "configure did not reset timer" unless PicoTimerApp.timer_remaining_seconds == 5
+raise "configure did not restart timer" unless PicoTimerApp.timer_remaining_seconds == 5
+raise "configure did not leave timer running" unless PicoTimerApp.timer_running?
 raise "configure left timer expired" if PicoTimerApp.timer_expired?
 
 PicoTimerApp.configure_timer(0)
@@ -124,7 +128,6 @@ PicoTimerApp.configure_timer(3_601)
 raise "maximum duration was not clamped" unless PicoTimerApp.timer_duration_seconds == 3_600
 
 PicoTimerApp.configure_timer(1)
-PicoTimerApp.start_timer
 idle_server = FakeServer.new
 100.times do
   raise "idle service unexpectedly accepted a client" if PicoTimerApp.service_once(idle_server)
@@ -147,6 +150,7 @@ set_client = FakeClient.new("/set?seconds=12")
 PicoTimerApp.handle_client(set_client)
 raise "set route failed to render" unless set_client.written.include?("200 OK")
 raise "set route failed" unless PicoTimerApp.timer_duration_seconds == 12
+raise "set route did not start timer" unless PicoTimerApp.timer_running?
 
 start_client = FakeClient.new("/start")
 PicoTimerApp.handle_client(start_client)

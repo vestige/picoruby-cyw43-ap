@@ -15,12 +15,11 @@ class PicoTimerState
     seconds = 1 if seconds < 1
     seconds = @max_seconds if @max_seconds < seconds
     @duration_seconds = seconds
-    reset
+    start
   end
 
   def start
-    update
-    @remaining_ms = @duration_seconds * 1000 if @remaining_ms <= 0
+    @remaining_ms = @duration_seconds * 1000
     @deadline_ms = Machine.board_millis + @remaining_ms
     @running = true
     @expired = false

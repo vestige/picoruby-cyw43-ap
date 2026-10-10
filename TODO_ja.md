@@ -55,9 +55,23 @@ AP停止はPico 2 W + mruby/c実機で確認済みです。ただし現行例は
         `Machine.signal_self_manage`とservice loop内の`Machine.check_signal`で
         `Interrupt`をtask内で処理するよう修正した最終版では、10秒の無通信満了後も
         `Stopping Pico Timer`、`AP active?: false`、shell復帰、SSID消失を確認した。
-- [ ] 元の操作規則を決めて実装する。秒数の設定は同時に開始、Stop後の次のStartは
+- [x] [Issue #36](https://github.com/vestige/picoruby-cyw43-ap/issues/36)で、
+      元の操作規則を実装する。秒数の設定は同時に開始、Stop後の次のStartは
       保存した秒数から再開始とし、現在のPicoRuby例の「Setのみ」「残り時間から再開」
       との差を解消する。範囲は1〜3600秒とする。
+      - [x] 元の`ptc/main.py`を再確認し、Set時の即時開始、Stop、保存秒数からの
+        Start、PicoRuby固有のResetの意味をhost smoke testで確認した。
+      - [x] 最新Core `a90afd12`でPico W + mruby/cをbuildした。最初のコマンドでは
+        `R2P2_NO_SHARED_ALLOC=1`を指定したが、現行Coreにはこの環境変数への参照がなく、
+        build結果には影響していない。外部gemのリンク済みシンボルと
+        2,603,008 bytesのUF2（SHA-256
+        `e281ee1b166d236435d79e42d240665ce6831ad3c83c5ded66eec2c2b67436fe`）を確認した。
+      - [x] 初期化許可済みの別個体Pico Wで、Setによる即時開始、Stop中の残り時間保持、
+        次のStartで停止時の残りではなく保存した30秒から再開始すること、無通信満了を
+        確認した。最初の試行後にLittleFSのファイル読取破損が発生したため、公式の
+        `flash_nuke.uf2`で全消去して同一SHA-256のfirmwareを書き直した。Timerのmrbは
+        転送後の読戻しでCRC32とSHA-256が一致し、破損は再現しなかった。Ctrl-Cでは
+        `Stopping Pico Timer`、`AP active?: false`、shell復帰、SSID消失を確認した。
 - [ ] GP15の外付けLEDを開始時に消灯、満了時に点灯し、LED Off操作または次の
       開始まで点灯を保持する。ブラウザを閉じたまま満了させ、LEDとタイマー状態を
       実機確認する。
