@@ -65,9 +65,28 @@ buzzer integration.
         service loop. After another 10-second idle expiry, Ctrl-C printed
         `Stopping Pico Timer` and `AP active?: false`, returned to the shell,
         and removed the SSID.
-- [ ] Match the original control semantics: setting seconds also starts the
+- [x] In [Issue #36](https://github.com/vestige/picoruby-cyw43-ap/issues/36),
+      match the original control semantics: setting seconds also starts the
       timer; after Stop, the next Start begins from the saved duration rather
       than resuming the remainder. Support 1–3600 seconds.
+      - [x] Recheck the original `ptc/main.py` and cover immediate start on
+        Set, Stop, Start from the saved duration, and the PicoRuby-only Reset
+        semantics in the host smoke test.
+      - [x] Build Pico W + mruby/c from Core `a90afd12`. The initial command
+        supplied `R2P2_NO_SHARED_ALLOC=1`, but current Core does not reference
+        that environment variable, so it did not affect the build. Confirm the
+        linked external-gem symbol and a
+        2,603,008-byte UF2 with SHA-256
+        `e281ee1b166d236435d79e42d240665ce6831ad3c83c5ded66eec2c2b67436fe`.
+      - [x] On the separately identified Pico W approved for reformatting,
+        verify immediate start on Set, a stable remainder while stopped, Start
+        from the saved 30-second duration rather than the stopped remainder,
+        and idle expiry. A LittleFS file-read corruption after the first trial
+        was cleared with the official `flash_nuke.uf2`; the same firmware was
+        reflashed and the Timer mrb matched both CRC32 and SHA-256 after a
+        readback. The corruption did not recur. Ctrl-C printed
+        `Stopping Pico Timer` and `AP active?: false`, returned to the shell,
+        and removed the SSID.
 - [ ] Turn the external GP15 LED off at start and on at expiry, and keep it on
       until LED Off or the next start. Verify expiry and LED state with the
       browser closed.
