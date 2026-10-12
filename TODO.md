@@ -102,6 +102,19 @@ buzzer integration.
         `Stopping Pico Timer` and `AP active?: false` and returned to the
         shell. The tested 8,302-byte mrb was read back with matching SHA-256
         `b84541abeec5015fadc348079e05b2c90d65dbe99b15e8acfdac2938f4149d0e`.
+- [x] In [Issue #49](https://github.com/vestige/picoruby-cyw43-ap/issues/49),
+      make Start resume the remaining time while paused. Set, Start after
+      expiry, and Start after Reset must still begin from the saved duration.
+      Complete this before the GP16 button behavior in Issue #41.
+      - 2026-10-12: Added an explicit paused state and context-sensitive
+        Restart, Resume, and Start labels. The CRuby host smoke test covers a stable paused
+        remainder, resume, Set while paused, and fresh starts after expiry and
+        Reset. On Pico 2 W + mruby/c, the paused remainder stayed stable,
+        Resume continued from it, Restart began from the saved duration, and
+        the Start/Restart/Resume labels matched each state. Ctrl-C printed
+        `Stopping Pico Timer` and `AP active?: false` and returned to the
+        shell. The tested 8,591-byte mrb was read back with matching SHA-256
+        `c3b8910432d308c32bea6f17b0262d72c26af46c7c3b5f038d6acf631962426a`.
 - [ ] In [Issue #41](https://github.com/vestige/picoruby-cyw43-ap/issues/41),
       read the GP16 button wired to GND with pull-up. Treat one press as one
       action: running → Stop; expiry LED on → LED Off; otherwise → Start with

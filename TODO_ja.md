@@ -88,6 +88,19 @@ AP停止はPico 2 W + mruby/c実機で確認済みです。ただし現行例は
         使用した8,302 bytesのmrbは読戻し後もSHA-256
         `b84541abeec5015fadc348079e05b2c90d65dbe99b15e8acfdac2938f4149d0e`
         が一致した。
+- [x] [Issue #49](https://github.com/vestige/picoruby-cyw43-ap/issues/49)で、
+      一時停止中のStartを残り時間からの再開にする。Set、満了後のStart、Reset後の
+      Startは引き続き保存した設定秒数から開始する。Issue #41のGP16スイッチより
+      先に操作規則を確定する。
+      - 2026-10-12: 明示的な一時停止状態と、状態に応じたRestart、Resume、Start
+        表示を実装した。
+        CRubyのhost smoke testで停止中の残り時間保持、再開、一時停止中のSet、
+        満了後とReset後の新規開始を確認した。Pico 2 W + mruby/c実機でも、停止中の
+        残り時間保持、Resume、設定秒数からのRestart、状態に応じたStart・Restart・
+        Resume表示を確認した。Ctrl+Cでは`Stopping Pico Timer`、
+        `AP active?: false`、shell復帰を確認した。使用した8,591 bytesのmrbは読戻し後も
+        SHA-256 `c3b8910432d308c32bea6f17b0262d72c26af46c7c3b5f038d6acf631962426a`
+        が一致した。
 - [ ] [Issue #41](https://github.com/vestige/picoruby-cyw43-ap/issues/41)で、
       GP16のGNDへ落とすタクトスイッチをpull-upで読み、1回の押下を1回の
       操作として扱う。計測中は停止、満了LED点灯中は消灯、それ以外は保存秒数で

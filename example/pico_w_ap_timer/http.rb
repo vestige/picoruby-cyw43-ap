@@ -47,7 +47,22 @@ class PicoTimerHTTP
   end
 
   def timer_page
-    state = @timer_state.running? ? "Running" : (@timer_state.expired? ? "Expired" : "Stopped")
+    state = if @timer_state.running?
+      "Running"
+    elsif @timer_state.expired?
+      "Expired"
+    elsif @timer_state.paused?
+      "Paused"
+    else
+      "Stopped"
+    end
+    start_label = if @timer_state.running?
+      "Restart"
+    elsif @timer_state.paused?
+      "Resume"
+    else
+      "Start"
+    end
     <<~HTML
       <!doctype html>
       <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -57,7 +72,7 @@ class PicoTimerHTTP
       <p>Remaining: <strong>#{@timer_state.remaining_seconds} sec</strong></p>
       <p>Expiry LED: <strong>#{@expiry_led.on? ? "On" : "Off"}</strong></p>
       <form action="/set"><input name="seconds" type="number" min="1" max="#{@timer_state.max_seconds}" value="#{@timer_state.duration_seconds}"><button>Set</button></form>
-      <p><a href="/start">Start</a> <a href="/stop">Stop</a> <a href="/reset">Reset</a> <a href="/ledoff">LED Off</a></p>
+      <p><a href="/start">#{start_label}</a> <a href="/stop">Stop</a> <a href="/reset">Reset</a> <a href="/ledoff">LED Off</a></p>
       <p><a href="/">Refresh status</a></p>
       <p>AP: #{CYW43::AP.ssid} / #{CYW43::AP.ipv4_address}</p>
     HTML

@@ -202,16 +202,18 @@ raise "remaining time mismatch" unless timer_state.remaining_seconds == 7
 timer_state.stop
 status_led.stop
 raise "stopped timer left status LED on" unless status_gpio.read == 0
+raise "stopped timer is not paused" unless timer_state.paused?
 stopped_remaining = timer_state.remaining_seconds
 Machine.advance(2_000)
 raise "stopped timer changed" unless timer_state.remaining_seconds == stopped_remaining
 
 timer_state.start
 status_led.start
-Machine.advance(7_000)
-raise "restart resumed the old remainder" unless timer_state.running?
-raise "restart did not use configured duration" unless timer_state.remaining_seconds == 3
-Machine.advance(3_000)
+raise "resume left timer paused" if timer_state.paused?
+Machine.advance(6_000)
+raise "resume did not use the old remainder" unless timer_state.running?
+raise "resumed timer remaining time mismatch" unless timer_state.remaining_seconds == 1
+Machine.advance(1_000)
 raise "timer did not expire" unless timer_state.expired?
 raise "expired timer still running" if timer_state.running?
 raise "expired timer has remaining time" unless timer_state.remaining_seconds == 0
@@ -228,6 +230,7 @@ raise "expiry LED relit after LED Off" unless expiry_gpio.read == 0
 timer_state.start
 status_led.start
 expiry_led.timer_started
+raise "start after expiry did not use configured duration" unless timer_state.remaining_seconds == 10
 raise "start did not leave expiry LED off" unless expiry_gpio.read == 0
 Machine.advance(10_000)
 timer_state.update
@@ -278,6 +281,7 @@ raise "set route failed to render" unless set_client.written.include?("200 OK")
 raise "set route failed" unless timer_state.duration_seconds == 12
 raise "set route did not start timer" unless timer_state.running?
 raise "set route did not turn expiry LED off" unless expiry_gpio.read == 0
+raise "running page missing Restart action" unless set_client.written.include?(">Restart</a>")
 
 start_client = FakeClient.new("/start")
 http.handle_client(start_client)
@@ -297,8 +301,27 @@ raise "route test expiry did not light LED" unless expiry_gpio.read == 1
 reset_client = FakeClient.new("/reset")
 http.handle_client(reset_client)
 raise "reset route failed" unless timer_state.remaining_seconds == 12
+raise "reset route left timer paused" if timer_state.paused?
 raise "reset route left status LED on" unless status_gpio.read == 0
 raise "reset route left expiry LED on" unless expiry_gpio.read == 0
+raise "stopped page missing Start action" unless reset_client.written.include?(">Start</a>")
+
+http.handle_client(FakeClient.new("/start"))
+Machine.advance(4_100)
+http.handle_client(FakeClient.new("/stop"))
+paused_remaining = timer_state.remaining_seconds
+raise "stop route did not pause timer" unless timer_state.paused?
+paused_page = FakeClient.new("/")
+http.handle_client(paused_page)
+raise "paused page missing Paused state" unless paused_page.written.include?("Status: <strong>Paused</strong>")
+raise "paused page missing Resume action" unless paused_page.written.include?(">Resume</a>")
+Machine.advance(2_000)
+http.handle_client(FakeClient.new("/start"))
+raise "start route did not resume paused remainder" unless timer_state.remaining_seconds == paused_remaining
+
+http.handle_client(FakeClient.new("/stop"))
+http.handle_client(FakeClient.new("/set?seconds=9"))
+raise "set route resumed the paused remainder" unless timer_state.remaining_seconds == 9
 
 led_off_client = FakeClient.new("/ledoff")
 http.handle_client(led_off_client)
