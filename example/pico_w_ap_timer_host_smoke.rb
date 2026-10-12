@@ -105,118 +105,125 @@ class FakeServer
   end
 end
 
-source_path = File.expand_path("example/pico_w_ap_timer.rb")
-source = File.read(source_path)
-source = source.lines.reject do |line|
-  line.start_with?("require ") || line.strip == "PicoTimerApp.run"
-end.join
-eval(source, nil, source_path)
+component_paths = %w[state.rb status_led.rb http.rb app.rb].map do |name|
+  File.expand_path("example/pico_w_ap_timer/#{name}")
+end
+component_paths.each { |path| load path }
 
-PicoTimerApp.setup_status_led
-status_led = PicoTimerApp.instance_variable_get(:@status_led)
-raise "status LED did not start off" unless status_led.read == 0
+app = PicoTimerApp.new
+status_gpio = app.setup_status_led
+timer_state = app.timer_state
+status_led = app.status_led
+http = app.http
+raise "status LED did not start off" unless status_gpio.read == 0
 
-raise "initial duration mismatch" unless PicoTimerApp.timer_duration_seconds == 10
-raise "initial remaining mismatch" unless PicoTimerApp.timer_remaining_seconds == 10
-raise "timer started unexpectedly" if PicoTimerApp.timer_running?
+raise "initial duration mismatch" unless timer_state.duration_seconds == 10
+raise "initial remaining mismatch" unless timer_state.remaining_seconds == 10
+raise "timer started unexpectedly" if timer_state.running?
 
-PicoTimerApp.configure_timer(10)
-raise "configure did not start timer" unless PicoTimerApp.timer_running?
-raise "running timer did not turn status LED on" unless status_led.read == 1
+timer_state.configure(10)
+status_led.start
+raise "configure did not start timer" unless timer_state.running?
+raise "running timer did not turn status LED on" unless status_gpio.read == 1
 Machine.advance(PicoTimerApp::STATUS_LED_BLINK_INTERVAL_MS)
-PicoTimerApp::TIMER_STATE.update
-PicoTimerApp.instance_variable_get(:@status_led_controller).update(PicoTimerApp.timer_running?)
-raise "running status LED did not blink off" unless status_led.read == 0
+timer_state.update
+status_led.update(timer_state.running?)
+raise "running status LED did not blink off" unless status_gpio.read == 0
 Machine.advance(PicoTimerApp::STATUS_LED_BLINK_INTERVAL_MS)
-PicoTimerApp::TIMER_STATE.update
-PicoTimerApp.instance_variable_get(:@status_led_controller).update(PicoTimerApp.timer_running?)
-raise "running status LED did not blink on" unless status_led.read == 1
-PicoTimerApp.configure_timer(10)
+timer_state.update
+status_led.update(timer_state.running?)
+raise "running status LED did not blink on" unless status_gpio.read == 1
+timer_state.configure(10)
+status_led.start
 Machine.advance(3_100)
-raise "running timer stopped early" unless PicoTimerApp.timer_running?
-raise "remaining time mismatch" unless PicoTimerApp.timer_remaining_seconds == 7
+raise "running timer stopped early" unless timer_state.running?
+raise "remaining time mismatch" unless timer_state.remaining_seconds == 7
 
-PicoTimerApp.stop_timer
-raise "stopped timer left status LED on" unless status_led.read == 0
-stopped_remaining = PicoTimerApp.timer_remaining_seconds
+timer_state.stop
+status_led.stop
+raise "stopped timer left status LED on" unless status_gpio.read == 0
+stopped_remaining = timer_state.remaining_seconds
 Machine.advance(2_000)
-raise "stopped timer changed" unless PicoTimerApp.timer_remaining_seconds == stopped_remaining
+raise "stopped timer changed" unless timer_state.remaining_seconds == stopped_remaining
 
-PicoTimerApp.start_timer
+timer_state.start
+status_led.start
 Machine.advance(7_000)
-raise "restart resumed the old remainder" unless PicoTimerApp.timer_running?
-raise "restart did not use configured duration" unless PicoTimerApp.timer_remaining_seconds == 3
+raise "restart resumed the old remainder" unless timer_state.running?
+raise "restart did not use configured duration" unless timer_state.remaining_seconds == 3
 Machine.advance(3_000)
-raise "timer did not expire" unless PicoTimerApp.timer_expired?
-raise "expired timer still running" if PicoTimerApp.timer_running?
-raise "expired timer has remaining time" unless PicoTimerApp.timer_remaining_seconds == 0
-PicoTimerApp::TIMER_STATE.update
-PicoTimerApp.instance_variable_get(:@status_led_controller).update(PicoTimerApp.timer_running?)
-raise "expired timer left status LED on" unless status_led.read == 0
+raise "timer did not expire" unless timer_state.expired?
+raise "expired timer still running" if timer_state.running?
+raise "expired timer has remaining time" unless timer_state.remaining_seconds == 0
+timer_state.update
+status_led.update(timer_state.running?)
+raise "expired timer left status LED on" unless status_gpio.read == 0
 
-PicoTimerApp.configure_timer(5)
-raise "configured duration mismatch" unless PicoTimerApp.timer_duration_seconds == 5
-raise "configure did not restart timer" unless PicoTimerApp.timer_remaining_seconds == 5
-raise "configure did not leave timer running" unless PicoTimerApp.timer_running?
-raise "configure left timer expired" if PicoTimerApp.timer_expired?
+timer_state.configure(5)
+raise "configured duration mismatch" unless timer_state.duration_seconds == 5
+raise "configure did not restart timer" unless timer_state.remaining_seconds == 5
+raise "configure did not leave timer running" unless timer_state.running?
+raise "configure left timer expired" if timer_state.expired?
 
-PicoTimerApp.configure_timer(0)
-raise "minimum duration was not clamped" unless PicoTimerApp.timer_duration_seconds == 1
-PicoTimerApp.configure_timer(3_601)
-raise "maximum duration was not clamped" unless PicoTimerApp.timer_duration_seconds == 3_600
+timer_state.configure(0)
+raise "minimum duration was not clamped" unless timer_state.duration_seconds == 1
+timer_state.configure(3_601)
+raise "maximum duration was not clamped" unless timer_state.duration_seconds == 3_600
 
-PicoTimerApp.configure_timer(1)
+timer_state.configure(1)
+status_led.start
 idle_server = FakeServer.new
 100.times do
-  raise "idle service unexpectedly accepted a client" if PicoTimerApp.service_once(idle_server)
+  raise "idle service unexpectedly accepted a client" if app.service_once(idle_server)
 end
-raise "idle timer did not expire" unless PicoTimerApp.timer_expired?
-raise "idle timer still running" if PicoTimerApp.timer_running?
-raise "idle timer has remaining time" unless PicoTimerApp.timer_remaining_seconds == 0
-10.times { PicoTimerApp.service_once(idle_server) }
-raise "expired state changed during idle service" unless PicoTimerApp.timer_expired?
+raise "idle timer did not expire" unless timer_state.expired?
+raise "idle timer still running" if timer_state.running?
+raise "idle timer has remaining time" unless timer_state.remaining_seconds == 0
+10.times { app.service_once(idle_server) }
+raise "expired state changed during idle service" unless timer_state.expired?
 raise "service loop did not check signals" unless 110 <= Machine.signal_checks
 
 root_client = FakeClient.new("/")
 root_server = FakeServer.new([root_client])
-raise "service did not accept a queued client" unless PicoTimerApp.service_once(root_server)
+raise "service did not accept a queued client" unless app.service_once(root_server)
 raise "root route failed" unless root_client.written.include?("200 OK")
 raise "root page missing title" unless root_client.written.include?("PicoRuby Timer")
 raise "service did not close the client" unless root_client.closed?
 
 set_client = FakeClient.new("/set?seconds=12")
-PicoTimerApp.handle_client(set_client)
+http.handle_client(set_client)
 raise "set route failed to render" unless set_client.written.include?("200 OK")
-raise "set route failed" unless PicoTimerApp.timer_duration_seconds == 12
-raise "set route did not start timer" unless PicoTimerApp.timer_running?
+raise "set route failed" unless timer_state.duration_seconds == 12
+raise "set route did not start timer" unless timer_state.running?
 
 start_client = FakeClient.new("/start")
-PicoTimerApp.handle_client(start_client)
-raise "start route failed" unless PicoTimerApp.timer_running?
+http.handle_client(start_client)
+raise "start route failed" unless timer_state.running?
 
 stop_client = FakeClient.new("/stop")
-PicoTimerApp.handle_client(stop_client)
-raise "stop route failed" if PicoTimerApp.timer_running?
+http.handle_client(stop_client)
+raise "stop route failed" if timer_state.running?
 
 reset_client = FakeClient.new("/reset")
-PicoTimerApp.handle_client(reset_client)
-raise "reset route failed" unless PicoTimerApp.timer_remaining_seconds == 12
-raise "reset route left status LED on" unless status_led.read == 0
+http.handle_client(reset_client)
+raise "reset route failed" unless timer_state.remaining_seconds == 12
+raise "reset route left status LED on" unless status_gpio.read == 0
 
 missing_client = FakeClient.new("/missing")
-PicoTimerApp.handle_client(missing_client)
+http.handle_client(missing_client)
 raise "missing route did not return 404" unless missing_client.written.include?("404 Not Found")
 
 silent_client = FakeSilentClient.new("/")
 started_at = Machine.board_millis
-PicoTimerApp.handle_client(silent_client)
+http.handle_client(silent_client)
 elapsed = Machine.board_millis - started_at
-raise "silent connection exceeded first-byte timeout" if elapsed > PicoTimerApp::HTTP_FIRST_BYTE_TIMEOUT_MS + PicoTimerApp::HTTP_POLL_INTERVAL_MS
+raise "silent connection exceeded first-byte timeout" if elapsed > PicoTimerHTTP::FIRST_BYTE_TIMEOUT_MS + PicoTimerHTTP::POLL_INTERVAL_MS
 raise "silent connection received a response" unless silent_client.written.empty?
 
-PicoTimerApp.start_timer
-raise "status LED did not turn on before cleanup" unless status_led.read == 1
-PicoTimerApp.instance_variable_get(:@status_led_controller).stop
-raise "status LED cleanup failed" unless status_led.read == 0
+timer_state.start
+status_led.start
+raise "status LED did not turn on before cleanup" unless status_gpio.read == 1
+status_led.stop
+raise "status LED cleanup failed" unless status_gpio.read == 0
 
 puts "Pico Timer host smoke test passed"

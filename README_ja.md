@@ -70,7 +70,9 @@ SSIDとパスワードは実際の用途に合わせて変更してください�
 - [最小HTTPサーバー](example/pico_w_ap_http_server.rb)：APに接続したブラウザへ
   plain textを返します。
 - [AP版Pico Timer](example/pico_w_ap_timer.rb)：Set、Start、Stop、Reset、満了、
-  手動の状態更新を備えたフィジビリティ例です。
+  手動の状態更新を備えたフィジビリティ例です。実装は
+  [`example/pico_w_ap_timer/`](example/pico_w_ap_timer/)でTimer状態、LED、HTTP、
+  アプリケーション制御に分かれ、入口ファイルは起動だけを担当します。
 - [同時HTTPリクエスト診断](example/pico_w_ap_http_concurrent_test.rb)：
   ブラウザから実行する診断用で、製品向けサーバーではありません。
 
@@ -81,6 +83,19 @@ HTTPのサンプルでは、build configに`picoruby-socket`も追加し、実�
 mruby/cの実機で操作と後始末を確認済みです。Pico Wとmrubyの実機動作は未検証です。
 [ホスト用スモークテスト](example/pico_w_ap_timer_host_smoke.rb)はCRubyと
 PicoRuby hostで実行できます。
+
+TimerをPicoへ転送する際は、コンポーネントを依存順に並べ、入口ファイルを最後に
+指定して1つの`.mrb`へコンパイルします。
+
+```sh
+PICORUBY_ROOT=/path/to/picoruby
+"$PICORUBY_ROOT/build/host/bin/mrbc" -o pico_w_ap_timer.mrb \
+  example/pico_w_ap_timer/state.rb \
+  example/pico_w_ap_timer/status_led.rb \
+  example/pico_w_ap_timer/http.rb \
+  example/pico_w_ap_timer/app.rb \
+  example/pico_w_ap_timer.rb
+```
 
 ## API
 

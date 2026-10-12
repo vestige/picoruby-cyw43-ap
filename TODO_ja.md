@@ -90,6 +90,13 @@ AP停止はPico 2 W + mruby/c実機で確認済みです。ただし現行例は
         消灯、動作中の500 ms間隔の点滅、Ctrl-C後の消灯・AP停止・shell復帰を確認した。
         HTTP操作はTimer状態とLED制御オブジェクトを直接更新し、mruby/cで不安定だった
         モジュールのシングルトンメソッド間呼び出しを避けた。
+- [x] [Issue #47](https://github.com/vestige/picoruby-cyw43-ap/issues/47)で、
+      Pico TimerをTimer状態、LED、HTTP、アプリケーション制御、実行入口へ分割する。
+      動作は変えず、依存順を明確にして単一の`.mrb`を再現可能に生成する。
+      - 2026-10-12: CRubyと最新PicoRuby hostのsmoke testが成功。
+        単一mrbは7,329 bytesで、転送後のCRC-32・SHA-256照合が一致した。
+        Pico 2 W + mruby/cでページ表示、Set/Stop/Start、満了、Reset、
+        LED点滅・消灯、Ctrl-C後のAP停止・shell復帰・SSID消失を確認した。
 - [ ] [Issue #44](https://github.com/vestige/picoruby-cyw43-ap/issues/44)で、
       元の`main.py`と同様にPicoを通常起動するだけでアプリが立ち上がる方法を
       整理する。APの予期しない停止からの回復、Ctrl-Cや異常終了時のsocket・AP・
@@ -101,7 +108,7 @@ AP停止はPico 2 W + mruby/c実機で確認済みです。ただし現行例は
       host test、対象firmwareのビルド、実機ログ、未検証のVM構成を記録する。
 
 Core側の既知課題#510・#516・#524は現在クローズ済みです。外部gemの後続作業は
-Issue #38〜#45で追跡します。現時点で上記を始める前に必須のCore修正は確認されて
+Issue #38〜#45と#47で追跡します。現時点で上記を始める前に必須のCore修正は確認されて
 いません。[Core #439](https://github.com/picoruby/picoruby/issues/439)はSTA接続時の
 エラーコードと再試行に関する未解決の相談であり、このAP版Timerとは別に追います。
 Coreのローカルbranchやprunableな一時worktreeの整理は別の保守作業です。
