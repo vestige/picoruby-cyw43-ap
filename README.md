@@ -77,7 +77,10 @@ network, the AP is `192.168.4.1` and leases are `192.168.4.2`–`192.168.4.5`.
   state, LED, HTTP, and application-control components; the entry point only
   starts the application. Connect GP15 to a 330-ohm resistor, the resistor to
   the LED anode, and the LED cathode to GND. The LED stays lit after expiry
-  until LED Off, Reset, or the next start.
+  until LED Off, Reset, or the next start. Stop preserves the remaining time;
+  the same action is labeled Restart while running, Resume while paused, and
+  Start otherwise. Restart, Set, Reset followed by Start, and Start after
+  expiry begin from the saved duration.
 - [Concurrent HTTP diagnostic](example/pico_w_ap_http_concurrent_test.rb):
   browser-driven request test, not a production server.
 
