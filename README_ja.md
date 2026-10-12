@@ -73,6 +73,9 @@ SSIDとパスワードは実際の用途に合わせて変更してください�
   手動の状態更新を備えたフィジビリティ例です。実装は
   [`example/pico_w_ap_timer/`](example/pico_w_ap_timer/)でTimer状態、LED、HTTP、
   アプリケーション制御に分かれ、入口ファイルは起動だけを担当します。
+  GP15 → 330 Ω抵抗 → LEDのアノード（長い脚）、LEDのカソード（短い脚）→ GND
+  の順に接続すると、満了時に点灯し、LED Off、Reset、または次の開始まで
+  点灯を保持します。
 - [同時HTTPリクエスト診断](example/pico_w_ap_http_concurrent_test.rb)：
   ブラウザから実行する診断用で、製品向けサーバーではありません。
 
@@ -81,6 +84,8 @@ HTTPのサンプルでは、build configに`picoruby-socket`も追加し、実�
 実際の認証情報をGitへcommitしないでください。各サンプルは終了時にsocketを
 閉じてAPを停止します。Timerは事前コンパイルした`.mrb`を使い、Pico 2 W +
 mruby/cの実機で操作と後始末を確認済みです。Pico Wとmrubyの実機動作は未検証です。
+GP15の外付けLEDは、ブラウザを閉じた状態での満了、LED Off、Reset、再開始、
+Ctrl+C終了時の消灯をPico 2 W + mruby/cの実機で確認済みです。
 [ホスト用スモークテスト](example/pico_w_ap_timer_host_smoke.rb)はCRubyと
 PicoRuby hostで実行できます。
 
@@ -92,6 +97,7 @@ PICORUBY_ROOT=/path/to/picoruby
 "$PICORUBY_ROOT/build/host/bin/mrbc" -o pico_w_ap_timer.mrb \
   example/pico_w_ap_timer/state.rb \
   example/pico_w_ap_timer/status_led.rb \
+  example/pico_w_ap_timer/expiry_led.rb \
   example/pico_w_ap_timer/http.rb \
   example/pico_w_ap_timer/app.rb \
   example/pico_w_ap_timer.rb

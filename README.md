@@ -75,7 +75,9 @@ network, the AP is `192.168.4.1` and leases are `192.168.4.2`–`192.168.4.5`.
   Start, Stop, Reset, expiry, and manual status refresh. Its implementation is
   split under [`example/pico_w_ap_timer/`](example/pico_w_ap_timer/) into timer
   state, LED, HTTP, and application-control components; the entry point only
-  starts the application.
+  starts the application. Connect GP15 to a 330-ohm resistor, the resistor to
+  the LED anode, and the LED cathode to GND. The LED stays lit after expiry
+  until LED Off, Reset, or the next start.
 - [Concurrent HTTP diagnostic](example/pico_w_ap_http_concurrent_test.rb):
   browser-driven request test, not a production server.
 
@@ -85,7 +87,9 @@ values; do not commit real credentials. Each example closes its sockets and
 disables the AP when it exits. The Timer example's behavior and cleanup were
 verified on Pico 2 W with mruby/c using a precompiled `.mrb`; Pico W and mruby
 hardware behavior are not yet verified. The example's [host smoke test](example/pico_w_ap_timer_host_smoke.rb)
-runs under CRuby and PicoRuby host.
+runs under CRuby and PicoRuby host. The external GP15 LED behavior, including
+unattended expiry, LED Off, Reset, rearming, and Ctrl-C cleanup, was verified
+on Pico 2 W with mruby/c.
 
 To transfer the Timer to a Pico, compile the components in dependency order
 and the entry point last, producing one `.mrb`:
@@ -95,6 +99,7 @@ PICORUBY_ROOT=/path/to/picoruby
 "$PICORUBY_ROOT/build/host/bin/mrbc" -o pico_w_ap_timer.mrb \
   example/pico_w_ap_timer/state.rb \
   example/pico_w_ap_timer/status_led.rb \
+  example/pico_w_ap_timer/expiry_led.rb \
   example/pico_w_ap_timer/http.rb \
   example/pico_w_ap_timer/app.rb \
   example/pico_w_ap_timer.rb

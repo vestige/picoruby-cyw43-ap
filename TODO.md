@@ -87,10 +87,21 @@ buzzer integration.
         readback. The corruption did not recur. Ctrl-C printed
         `Stopping Pico Timer` and `AP active?: false`, returned to the shell,
         and removed the SSID.
-- [ ] In [Issue #40](https://github.com/vestige/picoruby-cyw43-ap/issues/40),
+- [x] In [Issue #40](https://github.com/vestige/picoruby-cyw43-ap/issues/40),
       turn the external GP15 LED off at start and on at expiry, and keep it on
-      until LED Off or the next start. Verify expiry and LED state with the
-      browser closed.
+      until LED Off, Reset, or the next start. Verify expiry and LED state with
+      the browser closed.
+      - 2026-10-12: Implemented the GP15 expiry LED and LED Off action. The
+        CRuby host smoke test covers initial off, unattended expiry, latched
+        off, rearming on start, Reset cleanup, and shutdown cleanup. A Pico 2 W
+        + mruby/c firmware build from Core `0920e8e2`
+        included and linked the external gem. The 3,922,944-byte UF2 has
+        SHA-256 `738063e96c9e1b16094fd1c1d3d3dfe3bce41711096650347aa069e0522f8c`.
+        On Pico 2 W, unattended expiry lit GP15; LED Off, Reset, the next
+        start, and Ctrl-C turned it off. Ctrl-C also printed
+        `Stopping Pico Timer` and `AP active?: false` and returned to the
+        shell. The tested 8,302-byte mrb was read back with matching SHA-256
+        `b84541abeec5015fadc348079e05b2c90d65dbe99b15e8acfdac2938f4149d0e`.
 - [ ] In [Issue #41](https://github.com/vestige/picoruby-cyw43-ap/issues/41),
       read the GP16 button wired to GND with pull-up. Treat one press as one
       action: running → Stop; expiry LED on → LED Off; otherwise → Start with

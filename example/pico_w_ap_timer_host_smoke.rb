@@ -25,6 +25,12 @@ def sleep_ms(milliseconds)
 end
 
 module CYW43
+  class << self
+    def init(_country_code)
+      true
+    end
+  end
+
   class GPIO
     LED_PIN = 0
 
@@ -46,7 +52,21 @@ module CYW43
   end
 
   module AP
+    @active = false
+
     class << self
+      def enable(_ssid, _password)
+        @active = true
+      end
+
+      def disable
+        @active = false
+      end
+
+      def active?
+        @active
+      end
+
       def ssid
         "PicoRuby-Timer"
       end
@@ -55,6 +75,27 @@ module CYW43
         "192.168.4.1"
       end
     end
+  end
+end
+
+class GPIO
+  OUT = 2
+
+  attr_reader :pin, :writes
+
+  def initialize(pin, _flags)
+    @pin = pin
+    @writes = []
+    @value = 0
+  end
+
+  def write(value)
+    @value = value
+    @writes << value
+  end
+
+  def read
+    @value
   end
 end
 
@@ -96,26 +137,43 @@ class FakeSilentClient < FakeClient
 end
 
 class FakeServer
+  attr_reader :closed
+
   def initialize(clients = [])
     @clients = clients
+    @closed = false
   end
 
   def accept_nonblock
     @clients.shift
   end
+
+  def close
+    @closed = true
+  end
 end
 
-component_paths = %w[state.rb status_led.rb http.rb app.rb].map do |name|
+class FailingServer < FakeServer
+  def accept_nonblock
+    raise "simulated server failure"
+  end
+end
+
+component_paths = %w[state.rb status_led.rb expiry_led.rb http.rb app.rb].map do |name|
   File.expand_path("example/pico_w_ap_timer/#{name}")
 end
 component_paths.each { |path| load path }
 
 app = PicoTimerApp.new
-status_gpio = app.setup_status_led
+status_gpio = app.setup_leds
 timer_state = app.timer_state
 status_led = app.status_led
+expiry_led = app.expiry_led
 http = app.http
 raise "status LED did not start off" unless status_gpio.read == 0
+expiry_gpio = expiry_led.instance_variable_get(:@gpio)
+raise "expiry LED is not on GP15" unless expiry_gpio.pin == PicoTimerApp::EXPIRY_LED_PIN
+raise "expiry LED did not start off" unless expiry_gpio.read == 0
 
 raise "initial duration mismatch" unless timer_state.duration_seconds == 10
 raise "initial remaining mismatch" unless timer_state.remaining_seconds == 10
@@ -123,6 +181,7 @@ raise "timer started unexpectedly" if timer_state.running?
 
 timer_state.configure(10)
 status_led.start
+expiry_led.timer_started
 raise "configure did not start timer" unless timer_state.running?
 raise "running timer did not turn status LED on" unless status_gpio.read == 1
 Machine.advance(PicoTimerApp::STATUS_LED_BLINK_INTERVAL_MS)
@@ -135,6 +194,7 @@ status_led.update(timer_state.running?)
 raise "running status LED did not blink on" unless status_gpio.read == 1
 timer_state.configure(10)
 status_led.start
+expiry_led.timer_started
 Machine.advance(3_100)
 raise "running timer stopped early" unless timer_state.running?
 raise "remaining time mismatch" unless timer_state.remaining_seconds == 7
@@ -158,6 +218,25 @@ raise "expired timer has remaining time" unless timer_state.remaining_seconds ==
 timer_state.update
 status_led.update(timer_state.running?)
 raise "expired timer left status LED on" unless status_gpio.read == 0
+expiry_led.update(timer_state.expired?)
+raise "expiry LED did not turn on" unless expiry_gpio.read == 1
+
+expiry_led.off
+expiry_led.update(timer_state.expired?)
+raise "expiry LED relit after LED Off" unless expiry_gpio.read == 0
+
+timer_state.start
+status_led.start
+expiry_led.timer_started
+raise "start did not leave expiry LED off" unless expiry_gpio.read == 0
+Machine.advance(10_000)
+timer_state.update
+expiry_led.update(timer_state.expired?)
+raise "expiry LED did not turn on after rearming" unless expiry_gpio.read == 1
+timer_state.reset
+status_led.stop
+expiry_led.off
+raise "reset did not turn expiry LED off" unless expiry_gpio.read == 0
 
 timer_state.configure(5)
 raise "configured duration mismatch" unless timer_state.duration_seconds == 5
@@ -172,22 +251,25 @@ raise "maximum duration was not clamped" unless timer_state.duration_seconds == 
 
 timer_state.configure(1)
 status_led.start
+expiry_led.timer_started
 idle_server = FakeServer.new
-100.times do
+101.times do
   raise "idle service unexpectedly accepted a client" if app.service_once(idle_server)
 end
 raise "idle timer did not expire" unless timer_state.expired?
 raise "idle timer still running" if timer_state.running?
 raise "idle timer has remaining time" unless timer_state.remaining_seconds == 0
+raise "idle expiry did not light expiry LED" unless expiry_gpio.read == 1
 10.times { app.service_once(idle_server) }
 raise "expired state changed during idle service" unless timer_state.expired?
-raise "service loop did not check signals" unless 110 <= Machine.signal_checks
+raise "service loop did not check signals" unless 111 <= Machine.signal_checks
 
 root_client = FakeClient.new("/")
 root_server = FakeServer.new([root_client])
 raise "service did not accept a queued client" unless app.service_once(root_server)
 raise "root route failed" unless root_client.written.include?("200 OK")
 raise "root page missing title" unless root_client.written.include?("PicoRuby Timer")
+raise "root page missing expiry LED state" unless root_client.written.include?("Expiry LED:")
 raise "service did not close the client" unless root_client.closed?
 
 set_client = FakeClient.new("/set?seconds=12")
@@ -195,6 +277,7 @@ http.handle_client(set_client)
 raise "set route failed to render" unless set_client.written.include?("200 OK")
 raise "set route failed" unless timer_state.duration_seconds == 12
 raise "set route did not start timer" unless timer_state.running?
+raise "set route did not turn expiry LED off" unless expiry_gpio.read == 0
 
 start_client = FakeClient.new("/start")
 http.handle_client(start_client)
@@ -204,10 +287,22 @@ stop_client = FakeClient.new("/stop")
 http.handle_client(stop_client)
 raise "stop route failed" if timer_state.running?
 
+timer_state.start
+status_led.start
+expiry_led.timer_started
+Machine.advance(12_000)
+app.service_once(FakeServer.new)
+raise "route test expiry did not light LED" unless expiry_gpio.read == 1
+
 reset_client = FakeClient.new("/reset")
 http.handle_client(reset_client)
 raise "reset route failed" unless timer_state.remaining_seconds == 12
 raise "reset route left status LED on" unless status_gpio.read == 0
+raise "reset route left expiry LED on" unless expiry_gpio.read == 0
+
+led_off_client = FakeClient.new("/ledoff")
+http.handle_client(led_off_client)
+raise "LED Off route failed" unless expiry_gpio.read == 0
 
 missing_client = FakeClient.new("/missing")
 http.handle_client(missing_client)
@@ -225,5 +320,29 @@ status_led.start
 raise "status LED did not turn on before cleanup" unless status_gpio.read == 1
 status_led.stop
 raise "status LED cleanup failed" unless status_gpio.read == 0
+expiry_led.timer_started
+expiry_led.update(true)
+raise "expiry LED did not turn on before cleanup" unless expiry_gpio.read == 1
+expiry_led.off
+raise "expiry LED cleanup failed" unless expiry_gpio.read == 0
+
+cleanup_server = FailingServer.new
+tcp_server_class = Class.new do
+  define_singleton_method(:new) do |_address, _port|
+    cleanup_server
+  end
+end
+Object.const_set(:TCPServer, tcp_server_class)
+cleanup_app = PicoTimerApp.new
+begin
+  cleanup_app.run
+  raise "abnormal shutdown test did not fail"
+rescue RuntimeError => e
+  raise unless e.message == "simulated server failure"
+end
+raise "abnormal shutdown left server open" unless cleanup_server.closed
+raise "abnormal shutdown left status LED on" unless cleanup_app.status_led.instance_variable_get(:@gpio).read == 0
+raise "abnormal shutdown left expiry LED on" unless cleanup_app.expiry_led.instance_variable_get(:@gpio).read == 0
+raise "abnormal shutdown left AP active" if CYW43::AP.active?
 
 puts "Pico Timer host smoke test passed"
