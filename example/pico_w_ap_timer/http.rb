@@ -6,9 +6,10 @@ class PicoTimerHTTP
   POLL_INTERVAL_MS = 10
   RESPONSE_CHUNK_SIZE = 512
 
-  def initialize(timer_state, status_led)
+  def initialize(timer_state, status_led, expiry_led)
     @timer_state = timer_state
     @status_led = status_led
+    @expiry_led = expiry_led
   end
 
   def handle_client(client)
@@ -24,15 +25,20 @@ class PicoTimerHTTP
     when "/set"
       @timer_state.configure(target.split("seconds=")[1] || @timer_state.duration_seconds)
       @status_led.start
+      @expiry_led.timer_started
     when "/start"
       @timer_state.start
       @status_led.start
+      @expiry_led.timer_started
     when "/stop"
       @timer_state.stop
       @status_led.stop
     when "/reset"
       @timer_state.reset
       @status_led.stop
+      @expiry_led.off
+    when "/ledoff"
+      @expiry_led.off
     else
       return write_response(client, "404 Not Found", "Not Found\n")
     end
@@ -49,8 +55,9 @@ class PicoTimerHTTP
       <h1>PicoRuby Timer</h1>
       <p>Status: <strong>#{state}</strong></p>
       <p>Remaining: <strong>#{@timer_state.remaining_seconds} sec</strong></p>
+      <p>Expiry LED: <strong>#{@expiry_led.on? ? "On" : "Off"}</strong></p>
       <form action="/set"><input name="seconds" type="number" min="1" max="#{@timer_state.max_seconds}" value="#{@timer_state.duration_seconds}"><button>Set</button></form>
-      <p><a href="/start">Start</a> <a href="/stop">Stop</a> <a href="/reset">Reset</a></p>
+      <p><a href="/start">Start</a> <a href="/stop">Stop</a> <a href="/reset">Reset</a> <a href="/ledoff">LED Off</a></p>
       <p><a href="/">Refresh status</a></p>
       <p>AP: #{CYW43::AP.ssid} / #{CYW43::AP.ipv4_address}</p>
     HTML

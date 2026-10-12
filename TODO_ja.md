@@ -72,10 +72,22 @@ AP停止はPico 2 W + mruby/c実機で確認済みです。ただし現行例は
         `flash_nuke.uf2`で全消去して同一SHA-256のfirmwareを書き直した。Timerのmrbは
         転送後の読戻しでCRC32とSHA-256が一致し、破損は再現しなかった。Ctrl-Cでは
         `Stopping Pico Timer`、`AP active?: false`、shell復帰、SSID消失を確認した。
-- [ ] [Issue #40](https://github.com/vestige/picoruby-cyw43-ap/issues/40)で、
-      GP15の外付けLEDを開始時に消灯、満了時に点灯し、LED Off操作または次の
-      開始まで点灯を保持する。ブラウザを閉じたまま満了させ、LEDとタイマー状態を
-      実機確認する。
+- [x] [Issue #40](https://github.com/vestige/picoruby-cyw43-ap/issues/40)で、
+      GP15の外付けLEDを開始時に消灯、満了時に点灯し、LED Off、Reset、または
+      次の開始まで点灯を保持する。ブラウザを閉じたまま満了させ、LEDとタイマー
+      状態を実機確認する。
+      - 2026-10-12: GP15の満了LED制御とLED Off操作を実装し、CRubyのhost smoke
+        testで初期消灯、無通信満了時の点灯、LED Off後の消灯保持、次回開始時の
+        消灯と再点灯、Reset時と終了時の消灯を確認した。
+        Core `0920e8e2`の一時worktreeでPico 2 W + mruby/cをbuildし、外部gemの
+        コンパイル・リンクと3,922,944 bytesのUF2生成を確認した。SHA-256は
+        `738063e96c9e1b16094fd1c1d3d3dfe3bce41711096650347aa069e0522f8c`。
+        Pico 2 W実機で、ブラウザを閉じたままの満了でGP15が点灯し、LED Off、
+        Reset、次の開始、Ctrl+Cで消灯することを確認した。Ctrl+Cでは
+        `Stopping Pico Timer`、`AP active?: false`、shell復帰も確認した。
+        使用した8,302 bytesのmrbは読戻し後もSHA-256
+        `b84541abeec5015fadc348079e05b2c90d65dbe99b15e8acfdac2938f4149d0e`
+        が一致した。
 - [ ] [Issue #41](https://github.com/vestige/picoruby-cyw43-ap/issues/41)で、
       GP16のGNDへ落とすタクトスイッチをpull-upで読み、1回の押下を1回の
       操作として扱う。計測中は停止、満了LED点灯中は消灯、それ以外は保存秒数で
