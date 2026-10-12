@@ -107,6 +107,15 @@ buzzer integration.
         disabled and the shell returns. HTTP actions update the timer state and
         LED controller directly, avoiding singleton-method-to-singleton-method
         calls that were unreliable under mruby/c.
+- [x] In [Issue #47](https://github.com/vestige/picoruby-cyw43-ap/issues/47),
+      split the Pico Timer into timer state, LED, HTTP, application control,
+      and entry-point files. Preserve behavior, make dependencies explicit,
+      and reproducibly compile the sources into one `.mrb`.
+      - 2026-10-12: Smoke tests passed under CRuby and the current PicoRuby
+        host. The single mrb is 7,329 bytes; transfer readback matched CRC-32
+        and SHA-256. On Pico 2 W + mruby/c, verified page display,
+        Set/Stop/Start, expiry, Reset, LED blinking/off, and AP shutdown,
+        shell return, and SSID disappearance after Ctrl-C.
 - [ ] In [Issue #44](https://github.com/vestige/picoruby-cyw43-ap/issues/44),
       arrange startup by normal boot as in the original `main.py`. Verify
       recovery from an unexpectedly inactive AP, cleanup of sockets, AP,
@@ -119,7 +128,7 @@ buzzer integration.
       host tests, firmware builds, hardware logs, and unverified VM combinations.
 
 Core #510, #516, and #524 are currently closed. Follow-up work in this gem is
-tracked in Issues #38 through #45. No mandatory Core fix has been identified
+tracked in Issues #38 through #45 and #47. No mandatory Core fix has been identified
 before starting this work. [Core #439](https://github.com/picoruby/picoruby/issues/439) remains open
 for STA connection errors and retry policy; it is separate from the AP Timer.
 Cleanup of local Core branches and prunable temporary worktrees is separate
