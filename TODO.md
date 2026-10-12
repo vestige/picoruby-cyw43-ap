@@ -87,29 +87,40 @@ buzzer integration.
         readback. The corruption did not recur. Ctrl-C printed
         `Stopping Pico Timer` and `AP active?: false`, returned to the shell,
         and removed the SSID.
-- [ ] Turn the external GP15 LED off at start and on at expiry, and keep it on
+- [ ] In [Issue #40](https://github.com/vestige/picoruby-cyw43-ap/issues/40),
+      turn the external GP15 LED off at start and on at expiry, and keep it on
       until LED Off or the next start. Verify expiry and LED state with the
       browser closed.
-- [ ] Read the GP16 button wired to GND with pull-up. Treat one press as one
+- [ ] In [Issue #41](https://github.com/vestige/picoruby-cyw43-ap/issues/41),
+      read the GP16 button wired to GND with pull-up. Treat one press as one
       action: running → Stop; expiry LED on → LED Off; otherwise → Start with
       saved seconds. Verify debounce and no repeated action while held.
-- [ ] Drive the GP21 piezo buzzer with PWM. Play non-blocking start, stop, and
+- [ ] In [Issue #42](https://github.com/vestige/picoruby-cyw43-ap/issues/42),
+      drive the GP21 piezo buzzer with PWM. Play non-blocking start, stop, and
       expiry sounds, and stop PWM during cleanup.
-- [ ] Blink the onboard Pico W/2 W LED as a heartbeat. Auto-refresh browser
-      remaining time and LED state, including after transient request failure
-      and reconnection.
-- [ ] Arrange startup by normal boot as in the original `main.py`. Verify
+- [x] In [Issue #39](https://github.com/vestige/picoruby-cyw43-ap/issues/39),
+      blink the onboard Pico W/2 W LED as a running indicator. Automatic
+      browser refresh and reconnection synchronization belong to Issue #43.
+      - 2026-10-12: On Pico 2 W + mruby/c, verified that the LED is off
+        initially, while stopped, after reset, and after expiry; blinks at a
+        500 ms interval while running; and turns off on Ctrl-C while the AP is
+        disabled and the shell returns. HTTP actions update the timer state and
+        LED controller directly, avoiding singleton-method-to-singleton-method
+        calls that were unreliable under mruby/c.
+- [ ] In [Issue #44](https://github.com/vestige/picoruby-cyw43-ap/issues/44),
+      arrange startup by normal boot as in the original `main.py`. Verify
       recovery from an unexpectedly inactive AP, cleanup of sockets, AP,
       GPIO/PWM on Ctrl-C or error, and restoration of the client's usual Wi-Fi.
-- [ ] Run the full scenario with the original wiring on Pico 2 W + mruby/c:
+- [ ] In [Issue #45](https://github.com/vestige/picoruby-cyw43-ap/issues/45),
+      run the full scenario with the original wiring on Pico 2 W + mruby/c:
       expiry with the browser closed, button-only operation, browser control,
       reconnection, and repeated start/stop/expiry. To claim replacement of
       the original Pico W, repeat the full scenario on Pico W + mruby/c. Record
       host tests, firmware builds, hardware logs, and unverified VM combinations.
 
-Core #510, #516, and #524 are currently closed, and this gem has no open
-Issues or PRs. No mandatory Core fix has been identified before starting this
-work. [Core #439](https://github.com/picoruby/picoruby/issues/439) remains open
+Core #510, #516, and #524 are currently closed. Follow-up work in this gem is
+tracked in Issues #38 through #45. No mandatory Core fix has been identified
+before starting this work. [Core #439](https://github.com/picoruby/picoruby/issues/439) remains open
 for STA connection errors and retry policy; it is separate from the AP Timer.
 Cleanup of local Core branches and prunable temporary worktrees is separate
 maintenance work.

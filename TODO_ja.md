@@ -72,26 +72,36 @@ AP停止はPico 2 W + mruby/c実機で確認済みです。ただし現行例は
         `flash_nuke.uf2`で全消去して同一SHA-256のfirmwareを書き直した。Timerのmrbは
         転送後の読戻しでCRC32とSHA-256が一致し、破損は再現しなかった。Ctrl-Cでは
         `Stopping Pico Timer`、`AP active?: false`、shell復帰、SSID消失を確認した。
-- [ ] GP15の外付けLEDを開始時に消灯、満了時に点灯し、LED Off操作または次の
+- [ ] [Issue #40](https://github.com/vestige/picoruby-cyw43-ap/issues/40)で、
+      GP15の外付けLEDを開始時に消灯、満了時に点灯し、LED Off操作または次の
       開始まで点灯を保持する。ブラウザを閉じたまま満了させ、LEDとタイマー状態を
       実機確認する。
-- [ ] GP16のGNDへ落とすタクトスイッチをpull-upで読み、1回の押下を1回の
+- [ ] [Issue #41](https://github.com/vestige/picoruby-cyw43-ap/issues/41)で、
+      GP16のGNDへ落とすタクトスイッチをpull-upで読み、1回の押下を1回の
       操作として扱う。計測中は停止、満了LED点灯中は消灯、それ以外は保存秒数で
       開始する。チャタリングと長押しによる重複操作を実機確認する。
-- [ ] GP21の圧電ブザーをPWMで駆動し、開始・停止・満了の効果音を再生する。
+- [ ] [Issue #42](https://github.com/vestige/picoruby-cyw43-ap/issues/42)で、
+      GP21の圧電ブザーをPWMで駆動し、開始・停止・満了の効果音を再生する。
       音の再生はHTTP、スイッチ、満了判定を止めず、終了時にはPWMを停止する。
-- [ ] Pico W/2 Wの内蔵LEDを動作中の目印として点滅させる。ブラウザの残り時間と
-      LED状態を自動更新し、通信失敗時・再接続後もPico側の状態と一致させる。
-- [ ] 元の`main.py`と同様にPicoを通常起動するだけでアプリが立ち上がる方法を
+- [x] [Issue #39](https://github.com/vestige/picoruby-cyw43-ap/issues/39)で、
+      Pico W/2 Wの内蔵LEDを動作中の目印として点滅させる。ブラウザの残り時間と
+      LED状態の自動更新、通信失敗時・再接続後の同期はIssue #43で扱う。
+      - 2026-10-12: Pico 2 W + mruby/c実機で、初期状態・停止・Reset・満了時の
+        消灯、動作中の500 ms間隔の点滅、Ctrl-C後の消灯・AP停止・shell復帰を確認した。
+        HTTP操作はTimer状態とLED制御オブジェクトを直接更新し、mruby/cで不安定だった
+        モジュールのシングルトンメソッド間呼び出しを避けた。
+- [ ] [Issue #44](https://github.com/vestige/picoruby-cyw43-ap/issues/44)で、
+      元の`main.py`と同様にPicoを通常起動するだけでアプリが立ち上がる方法を
       整理する。APの予期しない停止からの回復、Ctrl-Cや異常終了時のsocket・AP・
       GPIO/PWMの後始末、スマホの通常Wi-Fi復旧を確認する。
-- [ ] Pico 2 W + mruby/cの実配線で、スマホを閉じたままの満了、スイッチのみの
+- [ ] [Issue #45](https://github.com/vestige/picoruby-cyw43-ap/issues/45)で、
+      Pico 2 W + mruby/cの実配線で、スマホを閉じたままの満了、スイッチのみの
       操作、ブラウザ操作、再接続、複数回の開始・停止・満了を通しで検証する。
       元のPico Wを置き換える完成判定では、Pico W + mruby/cでも同じ通し試験を行う。
       host test、対象firmwareのビルド、実機ログ、未検証のVM構成を記録する。
 
-Core側の既知課題#510・#516・#524は現在クローズ済みで、外部gemのIssue/PRにも
-openのものはありません。現時点で上記を始める前に必須のCore修正は確認されて
+Core側の既知課題#510・#516・#524は現在クローズ済みです。外部gemの後続作業は
+Issue #38〜#45で追跡します。現時点で上記を始める前に必須のCore修正は確認されて
 いません。[Core #439](https://github.com/picoruby/picoruby/issues/439)はSTA接続時の
 エラーコードと再試行に関する未解決の相談であり、このAP版Timerとは別に追います。
 Coreのローカルbranchやprunableな一時worktreeの整理は別の保守作業です。
