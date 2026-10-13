@@ -6,10 +6,11 @@ class PicoTimerHTTP
   POLL_INTERVAL_MS = 10
   RESPONSE_CHUNK_SIZE = 512
 
-  def initialize(timer_state, status_led, expiry_led)
+  def initialize(timer_state, status_led, expiry_led, button_control = nil)
     @timer_state = timer_state
     @status_led = status_led
     @expiry_led = expiry_led
+    @button_control = button_control
   end
 
   def handle_client(client)
@@ -82,6 +83,7 @@ class PicoTimerHTTP
     request = ""
     waited_ms = 0
     until request.include?("\r\n\r\n")
+      @button_control.update if @button_control
       chunk = client.read_nonblock(READ_CHUNK_SIZE)
       if chunk
         request << chunk
@@ -110,11 +112,13 @@ class PicoTimerHTTP
       "",
       ""
     ].join("\r\n")
+    @button_control.update if @button_control
     client.write(headers)
 
     offset = 0
     while offset < body.bytesize
       chunk = body.byteslice(offset, RESPONSE_CHUNK_SIZE)
+      @button_control.update if @button_control
       client.write(chunk)
       offset += chunk.bytesize
     end

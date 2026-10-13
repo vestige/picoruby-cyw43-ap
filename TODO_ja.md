@@ -101,10 +101,24 @@ AP停止はPico 2 W + mruby/c実機で確認済みです。ただし現行例は
         `AP active?: false`、shell復帰を確認した。使用した8,591 bytesのmrbは読戻し後も
         SHA-256 `c3b8910432d308c32bea6f17b0262d72c26af46c7c3b5f038d6acf631962426a`
         が一致した。
-- [ ] [Issue #41](https://github.com/vestige/picoruby-cyw43-ap/issues/41)で、
+- [x] [Issue #41](https://github.com/vestige/picoruby-cyw43-ap/issues/41)で、
       GP16のGNDへ落とすタクトスイッチをpull-upで読み、1回の押下を1回の
-      操作として扱う。計測中は停止、満了LED点灯中は消灯、それ以外は保存秒数で
-      開始する。チャタリングと長押しによる重複操作を実機確認する。
+      操作として扱う。計測中は停止、一時停止中は再開、満了LED点灯中は消灯、
+      それ以外は保存秒数で開始する。チャタリングと長押しによる重複操作を
+      実機確認する。
+      - 2026-10-12: non-blockingの30 ms debounceとactive-lowのGP16入力を実装した。
+        CRubyのhost smoke testでチャタリング除去、長押し中の1回動作、Stop、Resume、
+        Start、満了LED Offを確認した。Pico 2 W + mruby/c実機確認は未実施。
+      - 2026-10-13: 1 ms間隔の実機診断では、168〜410 msの短押しと2.94秒の長押しを
+        含むGP16の全変化を安定して記録し、接点のチャタリングは観測しなかった。
+        一方、accept済みHTTP接続のrequest待ち中はボタン監視が止まり、押下を
+        見逃し得ることを確認した。HTTPのread待ちとresponse書込み中もボタン処理を
+        継続し、遅延request中の押下をhost regression testへ追加した。
+        修正版をPico 2 W + mruby/c実機で確認し、空振りなくStart、Stop、Resume、
+        長押し中の重複抑止、満了LED Offが動作した。使用した9,941 bytesのmrbは
+        読戻し後もSHA-256
+        `a24d3b73e56aa37926cba19f97f575b1e4a96cd4fd192bfcae10fd05e1773a4b`
+        が一致した。
 - [ ] [Issue #42](https://github.com/vestige/picoruby-cyw43-ap/issues/42)で、
       GP21の圧電ブザーをPWMで駆動し、開始・停止・満了の効果音を再生する。
       音の再生はHTTP、スイッチ、満了判定を止めず、終了時にはPWMを停止する。

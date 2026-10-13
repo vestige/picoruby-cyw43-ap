@@ -115,10 +115,25 @@ buzzer integration.
         `Stopping Pico Timer` and `AP active?: false` and returned to the
         shell. The tested 8,591-byte mrb was read back with matching SHA-256
         `c3b8910432d308c32bea6f17b0262d72c26af46c7c3b5f038d6acf631962426a`.
-- [ ] In [Issue #41](https://github.com/vestige/picoruby-cyw43-ap/issues/41),
+- [x] In [Issue #41](https://github.com/vestige/picoruby-cyw43-ap/issues/41),
       read the GP16 button wired to GND with pull-up. Treat one press as one
-      action: running → Stop; expiry LED on → LED Off; otherwise → Start with
-      saved seconds. Verify debounce and no repeated action while held.
+      action: running → Stop; paused → Resume; expiry LED on → LED Off;
+      otherwise → Start with saved seconds. Verify debounce and no repeated
+      action while held.
+      - 2026-10-12: Added a non-blocking 30 ms debounce filter and active-low
+        GP16 input. The CRuby host smoke test covers bounce rejection, one
+        action during a long hold, Stop, Resume, Start, and expiry LED Off.
+        Pico 2 W + mruby/c hardware verification remains.
+      - 2026-10-13: A 1 ms hardware diagnostic recorded every GP16 transition
+        cleanly, including 168–410 ms short presses and a 2.94-second hold;
+        contact bounce was not observed. Button polling could instead pause
+        while an accepted HTTP connection waited for request bytes. Button
+        servicing now continues during HTTP reads and response writes, with a
+        host regression test for a press during a delayed request.
+        The updated Pico 2 W + mruby/c hardware test completed without missed
+        presses and verified Start, Stop, Resume, long-hold suppression, and
+        expiry LED Off. The tested 9,941-byte mrb was read back with matching
+        SHA-256 `a24d3b73e56aa37926cba19f97f575b1e4a96cd4fd192bfcae10fd05e1773a4b`.
 - [ ] In [Issue #42](https://github.com/vestige/picoruby-cyw43-ap/issues/42),
       drive the GP21 piezo buzzer with PWM. Play non-blocking start, stop, and
       expiry sounds, and stop PWM during cleanup.

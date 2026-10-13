@@ -77,7 +77,9 @@ SSIDとパスワードは実際の用途に合わせて変更してください�
   の順に接続すると、満了時に点灯し、LED Off、Reset、または次の開始まで
   点灯を保持します。開始操作は計測中にRestart、一時停止中にResume、それ以外は
   Startと表示します。Resumeは残り時間から再開し、Restart、Set、Reset後のStart、
-  満了後のStartは保存した設定秒数から開始します。
+  満了後のStartは保存した設定秒数から開始します。GP16とGNDの間にnormally openの
+  タクトスイッチを接続すると、1回の押下で計測中はStop、一時停止中はResume、
+  満了LED点灯中はLED Off、それ以外の停止中はStartとして操作できます。
 - [同時HTTPリクエスト診断](example/pico_w_ap_http_concurrent_test.rb)：
   ブラウザから実行する診断用で、製品向けサーバーではありません。
 
@@ -100,6 +102,7 @@ PICORUBY_ROOT=/path/to/picoruby
   example/pico_w_ap_timer/state.rb \
   example/pico_w_ap_timer/status_led.rb \
   example/pico_w_ap_timer/expiry_led.rb \
+  example/pico_w_ap_timer/button.rb \
   example/pico_w_ap_timer/http.rb \
   example/pico_w_ap_timer/app.rb \
   example/pico_w_ap_timer.rb
