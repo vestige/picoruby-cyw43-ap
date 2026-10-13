@@ -79,14 +79,17 @@ module CYW43
 end
 
 class GPIO
+  IN = 1
   OUT = 2
+  PULL_UP = 8
 
-  attr_reader :pin, :writes
+  attr_reader :pin, :flags, :writes
 
-  def initialize(pin, _flags)
+  def initialize(pin, flags)
     @pin = pin
+    @flags = flags
     @writes = []
-    @value = 0
+    @value = flags & PULL_UP == PULL_UP ? 1 : 0
   end
 
   def write(value)
@@ -96,6 +99,10 @@ class GPIO
 
   def read
     @value
+  end
+
+  def simulate_input(value)
+    @value = value
   end
 end
 
@@ -136,6 +143,23 @@ class FakeSilentClient < FakeClient
   end
 end
 
+class FakeButtonDuringRequestClient < FakeClient
+  def initialize(target, gpio)
+    super(target)
+    @gpio = gpio
+    @read_count = 0
+  end
+
+  def read_nonblock(maximum_length)
+    @read_count += 1
+    @gpio.simulate_input(0) if @read_count == 1
+    @gpio.simulate_input(1) if @read_count == 6
+    return nil if @read_count < 10
+
+    super(maximum_length)
+  end
+end
+
 class FakeServer
   attr_reader :closed
 
@@ -159,7 +183,7 @@ class FailingServer < FakeServer
   end
 end
 
-component_paths = %w[state.rb status_led.rb expiry_led.rb http.rb app.rb].map do |name|
+component_paths = %w[state.rb status_led.rb expiry_led.rb button.rb http.rb app.rb].map do |name|
   File.expand_path("example/pico_w_ap_timer/#{name}")
 end
 component_paths.each { |path| load path }
@@ -169,11 +193,45 @@ status_gpio = app.setup_leds
 timer_state = app.timer_state
 status_led = app.status_led
 expiry_led = app.expiry_led
+button = app.button
 http = app.http
 raise "status LED did not start off" unless status_gpio.read == 0
 expiry_gpio = expiry_led.instance_variable_get(:@gpio)
 raise "expiry LED is not on GP15" unless expiry_gpio.pin == PicoTimerApp::EXPIRY_LED_PIN
 raise "expiry LED did not start off" unless expiry_gpio.read == 0
+button_gpio = button.instance_variable_get(:@gpio)
+raise "button is not on GP16" unless button_gpio.pin == PicoTimerApp::BUTTON_PIN
+expected_button_flags = GPIO::IN | GPIO::PULL_UP
+raise "button is not a pull-up input" unless button_gpio.flags == expected_button_flags
+
+button_server = FakeServer.new
+button_gpio.simulate_input(0)
+2.times { app.service_once(button_server) }
+button_gpio.simulate_input(1)
+app.service_once(button_server)
+button_gpio.simulate_input(0)
+3.times { app.service_once(button_server) }
+raise "button bounce triggered before debounce" if timer_state.running?
+app.service_once(button_server)
+raise "debounced button did not start timer" unless timer_state.running?
+10.times { app.service_once(button_server) }
+raise "held button repeated its action" unless timer_state.running?
+button_gpio.simulate_input(1)
+4.times { app.service_once(button_server) }
+button_gpio.simulate_input(0)
+4.times { app.service_once(button_server) }
+raise "button did not stop running timer" if timer_state.running?
+raise "button stop did not pause timer" unless timer_state.paused?
+button_gpio.simulate_input(1)
+4.times { app.service_once(button_server) }
+button_gpio.simulate_input(0)
+4.times { app.service_once(button_server) }
+raise "button did not resume paused timer" unless timer_state.running?
+button_gpio.simulate_input(1)
+4.times { app.service_once(button_server) }
+timer_state.reset
+status_led.stop
+expiry_led.off
 
 raise "initial duration mismatch" unless timer_state.duration_seconds == 10
 raise "initial remaining mismatch" unless timer_state.remaining_seconds == 10
@@ -223,7 +281,14 @@ raise "expired timer left status LED on" unless status_gpio.read == 0
 expiry_led.update(timer_state.expired?)
 raise "expiry LED did not turn on" unless expiry_gpio.read == 1
 
-expiry_led.off
+button_gpio.simulate_input(0)
+4.times { app.service_once(button_server) }
+raise "button did not turn expiry LED off" unless expiry_gpio.read == 0
+raise "expiry LED button changed expired state" unless timer_state.expired?
+10.times { app.service_once(button_server) }
+raise "held button started timer after LED Off" if timer_state.running?
+button_gpio.simulate_input(1)
+4.times { app.service_once(button_server) }
 expiry_led.update(timer_state.expired?)
 raise "expiry LED relit after LED Off" unless expiry_gpio.read == 0
 
@@ -326,6 +391,15 @@ raise "set route resumed the paused remainder" unless timer_state.remaining_seco
 led_off_client = FakeClient.new("/ledoff")
 http.handle_client(led_off_client)
 raise "LED Off route failed" unless expiry_gpio.read == 0
+
+timer_state.reset
+status_led.stop
+button_during_request = FakeButtonDuringRequestClient.new("/", button_gpio)
+http.handle_client(button_during_request)
+raise "HTTP request wait hid button press" unless timer_state.running?
+raise "button press during HTTP request did not render running state" unless button_during_request.written.include?("Status: <strong>Running</strong>")
+button_gpio.simulate_input(1)
+4.times { app.service_once(button_server) }
 
 missing_client = FakeClient.new("/missing")
 http.handle_client(missing_client)
