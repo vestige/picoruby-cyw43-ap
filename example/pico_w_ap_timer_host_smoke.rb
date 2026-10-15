@@ -183,7 +183,7 @@ class FailingServer < FakeServer
   end
 end
 
-component_paths = %w[state.rb status_led.rb expiry_led.rb button.rb http.rb app.rb].map do |name|
+component_paths = %w[state.rb status_led.rb expiry_led.rb control.rb button.rb http.rb app.rb].map do |name|
   File.expand_path("example/pico_w_ap_timer/#{name}")
 end
 component_paths.each { |path| load path }
@@ -338,7 +338,17 @@ raise "service did not accept a queued client" unless app.service_once(root_serv
 raise "root route failed" unless root_client.written.include?("200 OK")
 raise "root page missing title" unless root_client.written.include?("PicoRuby Timer")
 raise "root page missing expiry LED state" unless root_client.written.include?("Expiry LED:")
+raise "root page missing automatic status polling" unless root_client.written.include?('fetch("/status"')
+raise "root page missing reconnect state" unless root_client.written.include?("Disconnected - retrying")
 raise "service did not close the client" unless root_client.closed?
+
+status_client = FakeClient.new("/status")
+http.handle_client(status_client)
+raise "status route failed" unless status_client.written.include?("200 OK")
+raise "status route is not JSON" unless status_client.written.include?("Content-Type: application/json")
+raise "status route missing expired state" unless status_client.written.include?('"status":"Expired"')
+raise "status route missing remaining time" unless status_client.written.include?('"remaining_seconds":0')
+raise "status route missing expiry LED" unless status_client.written.include?('"expiry_led":true')
 
 set_client = FakeClient.new("/set?seconds=12")
 http.handle_client(set_client)
@@ -378,11 +388,21 @@ paused_remaining = timer_state.remaining_seconds
 raise "stop route did not pause timer" unless timer_state.paused?
 paused_page = FakeClient.new("/")
 http.handle_client(paused_page)
-raise "paused page missing Paused state" unless paused_page.written.include?("Status: <strong>Paused</strong>")
+raise "paused page missing Paused state" unless paused_page.written.include?('id="status">Paused</strong>')
 raise "paused page missing Resume action" unless paused_page.written.include?(">Resume</a>")
 Machine.advance(2_000)
 http.handle_client(FakeClient.new("/start"))
 raise "start route did not resume paused remainder" unless timer_state.remaining_seconds == paused_remaining
+
+3.times do
+  http.handle_client(FakeClient.new("/stop"))
+  raise "repeated web stop did not pause" unless timer_state.paused?
+  control_status = FakeClient.new("/status")
+  http.handle_client(control_status)
+  raise "status did not follow web stop" unless control_status.written.include?('"status":"Paused"')
+  http.handle_client(FakeClient.new("/start"))
+  raise "repeated web start did not run" unless timer_state.running?
+end
 
 http.handle_client(FakeClient.new("/stop"))
 http.handle_client(FakeClient.new("/set?seconds=9"))
@@ -397,7 +417,7 @@ status_led.stop
 button_during_request = FakeButtonDuringRequestClient.new("/", button_gpio)
 http.handle_client(button_during_request)
 raise "HTTP request wait hid button press" unless timer_state.running?
-raise "button press during HTTP request did not render running state" unless button_during_request.written.include?("Status: <strong>Running</strong>")
+raise "button press during HTTP request did not render running state" unless button_during_request.written.include?('id="status">Running</strong>')
 button_gpio.simulate_input(1)
 4.times { app.service_once(button_server) }
 

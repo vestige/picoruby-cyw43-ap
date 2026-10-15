@@ -10,7 +10,7 @@ class PicoTimerApp
   DEFAULT_SECONDS = 10
   MAX_SECONDS = 60 * 60
 
-  attr_reader :timer_state, :status_led, :expiry_led, :button, :button_control, :http
+  attr_reader :timer_state, :status_led, :expiry_led, :control, :button, :button_control, :http
 
   def initialize
     @timer_state = PicoTimerState.new(DEFAULT_SECONDS, MAX_SECONDS)
@@ -21,10 +21,11 @@ class PicoTimerApp
     @status_led = PicoTimerStatusLED.new(gpio, STATUS_LED_BLINK_INTERVAL_MS)
     expiry_gpio = GPIO.new(EXPIRY_LED_PIN, GPIO::OUT)
     @expiry_led = PicoTimerExpiryLED.new(expiry_gpio)
+    @control = PicoTimerControl.new(@timer_state, @status_led, @expiry_led)
     button_gpio = GPIO.new(BUTTON_PIN, GPIO::IN | GPIO::PULL_UP)
     @button = PicoTimerButton.new(button_gpio, BUTTON_DEBOUNCE_MS)
-    @button_control = PicoTimerButtonControl.new(@button, @timer_state, @status_led, @expiry_led)
-    @http = PicoTimerHTTP.new(@timer_state, @status_led, @expiry_led, @button_control)
+    @button_control = PicoTimerButtonControl.new(@button, @control)
+    @http = PicoTimerHTTP.new(@timer_state, @expiry_led, @control, @button_control)
     gpio
   end
 

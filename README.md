@@ -83,6 +83,9 @@ network, the AP is `192.168.4.1` and leases are `192.168.4.2`–`192.168.4.5`.
   expiry begin from the saved duration. Connect a normally open push button
   between GP16 and GND. One press stops a running timer, resumes a paused
   timer, turns off a lit expiry LED, or starts an otherwise stopped timer.
+  The browser polls the Pico for timer, remaining-time, and expiry-LED state,
+  so physical button actions appear automatically. It retries after a lost
+  connection and resynchronizes from the Pico after reconnecting.
 - [Concurrent HTTP diagnostic](example/pico_w_ap_http_concurrent_test.rb):
   browser-driven request test, not a production server.
 
@@ -105,6 +108,7 @@ PICORUBY_ROOT=/path/to/picoruby
   example/pico_w_ap_timer/state.rb \
   example/pico_w_ap_timer/status_led.rb \
   example/pico_w_ap_timer/expiry_led.rb \
+  example/pico_w_ap_timer/control.rb \
   example/pico_w_ap_timer/button.rb \
   example/pico_w_ap_timer/http.rb \
   example/pico_w_ap_timer/app.rb \

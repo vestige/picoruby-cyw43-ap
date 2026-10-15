@@ -137,6 +137,18 @@ buzzer integration.
 - [ ] In [Issue #42](https://github.com/vestige/picoruby-cyw43-ap/issues/42),
       drive the GP21 piezo buzzer with PWM. Play non-blocking start, stop, and
       expiry sounds, and stop PWM during cleanup.
+- [x] In [Issue #43](https://github.com/vestige/picoruby-cyw43-ap/issues/43),
+      synchronize web and physical-device timer state.
+      - 2026-10-13: Added one shared controller for web and button actions and
+        a polled `/status` endpoint that updates remaining time, state, expiry
+        LED, and the Start-family label. The page shows retry state on a lost
+        connection and resynchronizes from the Pico after reconnecting. The
+        CRuby host smoke test covers web/button actions, JSON state, and
+        repeated Stop/Resume cycles.
+      - 2026-10-15: On Pico 2 W + mruby/c, verified automatic remaining-time
+        updates, mutual reflection of web and GP16 actions, automatic recovery
+        after disconnecting and reconnecting Wi-Fi while running, repeated
+        three-second expiries, and synchronized expiry LED/LED Off state.
 - [x] In [Issue #39](https://github.com/vestige/picoruby-cyw43-ap/issues/39),
       blink the onboard Pico W/2 W LED as a running indicator. Automatic
       browser refresh and reconnection synchronization belong to Issue #43.

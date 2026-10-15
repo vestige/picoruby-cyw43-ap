@@ -80,6 +80,9 @@ SSIDとパスワードは実際の用途に合わせて変更してください�
   満了後のStartは保存した設定秒数から開始します。GP16とGNDの間にnormally openの
   タクトスイッチを接続すると、1回の押下で計測中はStop、一時停止中はResume、
   満了LED点灯中はLED Off、それ以外の停止中はStartとして操作できます。
+  ブラウザ表示はPico側の状態を定期取得し、物理スイッチによる操作、残り時間、
+  満了LEDを自動反映します。通信が切れた場合は再試行し、再接続後にPico側の
+  状態へ同期します。
 - [同時HTTPリクエスト診断](example/pico_w_ap_http_concurrent_test.rb)：
   ブラウザから実行する診断用で、製品向けサーバーではありません。
 
@@ -102,6 +105,7 @@ PICORUBY_ROOT=/path/to/picoruby
   example/pico_w_ap_timer/state.rb \
   example/pico_w_ap_timer/status_led.rb \
   example/pico_w_ap_timer/expiry_led.rb \
+  example/pico_w_ap_timer/control.rb \
   example/pico_w_ap_timer/button.rb \
   example/pico_w_ap_timer/http.rb \
   example/pico_w_ap_timer/app.rb \
