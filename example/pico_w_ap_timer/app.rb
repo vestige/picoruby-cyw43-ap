@@ -44,7 +44,10 @@ class PicoTimerApp
       puts "AP started: #{CYW43::AP.ssid}"
       puts "Open http://#{address}/"
 
-      loop { service_once(server) }
+      loop do
+        raise "AP stopped unexpectedly" unless CYW43::AP.active?
+        service_once(server)
+      end
     rescue Interrupt
       puts "Stopping Pico Timer"
     ensure
