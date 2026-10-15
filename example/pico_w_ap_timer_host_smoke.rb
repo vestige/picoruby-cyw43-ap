@@ -183,6 +183,13 @@ class FailingServer < FakeServer
   end
 end
 
+class APStoppingServer < FakeServer
+  def accept_nonblock
+    CYW43::AP.disable
+    nil
+  end
+end
+
 component_paths = %w[state.rb status_led.rb expiry_led.rb control.rb button.rb http.rb app.rb].map do |name|
   File.expand_path("example/pico_w_ap_timer/#{name}")
 end
@@ -461,5 +468,21 @@ raise "abnormal shutdown left server open" unless cleanup_server.closed
 raise "abnormal shutdown left status LED on" unless cleanup_app.status_led.instance_variable_get(:@gpio).read == 0
 raise "abnormal shutdown left expiry LED on" unless cleanup_app.expiry_led.instance_variable_get(:@gpio).read == 0
 raise "abnormal shutdown left AP active" if CYW43::AP.active?
+
+stopped_ap_server = APStoppingServer.new
+tcp_server_class.define_singleton_method(:new) do |_address, _port|
+  stopped_ap_server
+end
+stopped_ap_app = PicoTimerApp.new
+begin
+  stopped_ap_app.run
+  raise "unexpected AP stop did not fail"
+rescue RuntimeError => e
+  raise unless e.message == "AP stopped unexpectedly"
+end
+raise "unexpected AP stop left server open" unless stopped_ap_server.closed
+raise "unexpected AP stop left status LED on" unless stopped_ap_app.status_led.instance_variable_get(:@gpio).read == 0
+raise "unexpected AP stop left expiry LED on" unless stopped_ap_app.expiry_led.instance_variable_get(:@gpio).read == 0
+raise "unexpected AP stop re-enabled AP" if CYW43::AP.active?
 
 puts "Pico Timer host smoke test passed"

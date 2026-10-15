@@ -146,10 +146,17 @@ AP停止はPico 2 W + mruby/c実機で確認済みです。ただし現行例は
         単一mrbは7,329 bytesで、転送後のCRC-32・SHA-256照合が一致した。
         Pico 2 W + mruby/cでページ表示、Set/Stop/Start、満了、Reset、
         LED点滅・消灯、Ctrl-C後のAP停止・shell復帰・SSID消失を確認した。
-- [ ] [Issue #44](https://github.com/vestige/picoruby-cyw43-ap/issues/44)で、
+- [x] [Issue #44](https://github.com/vestige/picoruby-cyw43-ap/issues/44)で、
       元の`main.py`と同様にPicoを通常起動するだけでアプリが立ち上がる方法を
       整理する。APの予期しない停止からの回復、Ctrl-Cや異常終了時のsocket・AP・
       GPIO/PWMの後始末、スマホの通常Wi-Fi復旧を確認する。
+      - 2026-10-15: Timerを`/home/app.mrb`へ配置するR2P2標準の自動起動手順と、
+        無効化・起動skip・停止手順をREADMEへ追加した。APの予期しない停止を
+        検出して異常終了の後始末へ移るようにし、host smoke testで通常異常と
+        AP停止異常のsocket・AP・状態LED・満了LEDの後始末を確認した。
+        Pico 2 W + mruby/cへ13,886 bytesの`app.mrb`を転送し、ソフトウェア再起動と
+        USB抜き差しの両方で、利用者の追加操作なしにTimer APが起動した。
+        Issue #42保留中のため、現構成にはPWM出力はない。
 - [ ] [Issue #45](https://github.com/vestige/picoruby-cyw43-ap/issues/45)で、
       Pico 2 W + mruby/cの実配線で、スマホを閉じたままの満了、スイッチのみの
       操作、ブラウザ操作、再接続、複数回の開始・停止・満了を通しで検証する。

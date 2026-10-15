@@ -115,6 +115,24 @@ PICORUBY_ROOT=/path/to/picoruby
   example/pico_w_ap_timer.rb
 ```
 
+### Starting the Timer automatically
+
+Transfer the generated `pico_w_ap_timer.mrb` to the Pico as `/home/app.mrb`.
+R2P2 will then start the Timer automatically on each normal boot. Because
+`/home/app.mrb` takes precedence over `/home/app.rb`, preserve any existing
+application before installing it. Unplug and reconnect USB to start the AP
+without another shell command.
+
+Ctrl+C closes the HTTP socket, disables the AP, turns off the onboard status
+LED and GP15 expiry LED, and returns to the shell. To disable autostart, rename
+`/home/app.mrb` from the shell and reboot. If the startup application prevents
+shell access, press `s` during the startup prompt to skip `/etc/init.d/r2p2`.
+An unexpectedly inactive AP follows the same cleanup path and returns to the
+shell; the next normal reboot starts the Timer again.
+
+Issue #42 is postponed, so this configuration has no PWM output. When the
+buzzer is added, its PWM cleanup must cover both Ctrl+C and abnormal exit.
+
 ## API
 
 - `CYW43::AP.enable(ssid, password, auth = WPA2_AES_PSK) -> bool`

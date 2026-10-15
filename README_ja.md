@@ -112,6 +112,22 @@ PICORUBY_ROOT=/path/to/picoruby
   example/pico_w_ap_timer.rb
 ```
 
+### Timerの自動起動
+
+生成した`pico_w_ap_timer.mrb`をPicoの`/home/app.mrb`として転送すると、次回以降は
+通常起動時にR2P2が自動でTimerを開始します。既存の`/home/app.rb`より
+`/home/app.mrb`が優先されるため、既存ファイルがある場合は上書きせず事前に退避して
+ください。USBを抜いてから再接続すると、追加操作なしで`PicoRuby-Timer`が現れます。
+
+実行中にCtrl+Cを送ると、HTTP socket、AP、内蔵状態LED、GP15満了LEDを停止して
+shellへ戻ります。自動起動を無効にする場合は、shellで`/home/app.mrb`を別名へ移動して
+から再起動してください。起動時に問題がある場合は、起動直後の案内中に`s`を押して
+`/etc/init.d/r2p2`をskipするとshellへ入れます。APが予期せず停止した場合も同じ後始末を
+行ってshellへ戻り、次の通常再起動でTimerを再度自動起動します。
+
+Issue #42のブザーは保留中のため、現在の構成にPWM出力はありません。追加時には
+Ctrl+Cと異常終了の両方でPWMを停止する必要があります。
+
 ## API
 
 - `CYW43::AP.enable(ssid, password, auth = WPA2_AES_PSK) -> bool`

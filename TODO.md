@@ -167,10 +167,19 @@ buzzer integration.
         and SHA-256. On Pico 2 W + mruby/c, verified page display,
         Set/Stop/Start, expiry, Reset, LED blinking/off, and AP shutdown,
         shell return, and SSID disappearance after Ctrl-C.
-- [ ] In [Issue #44](https://github.com/vestige/picoruby-cyw43-ap/issues/44),
+- [x] In [Issue #44](https://github.com/vestige/picoruby-cyw43-ap/issues/44),
       arrange startup by normal boot as in the original `main.py`. Verify
       recovery from an unexpectedly inactive AP, cleanup of sockets, AP,
       GPIO/PWM on Ctrl-C or error, and restoration of the client's usual Wi-Fi.
+      - 2026-10-15: Documented the standard R2P2 `/home/app.mrb` autostart
+        installation, disable, startup-skip, and stop procedures. The app now
+        detects an unexpectedly inactive AP and enters its abnormal cleanup
+        path. Host smoke tests cover socket, AP, status LED, and expiry LED
+        cleanup for both a general failure and an unexpected AP stop. A
+        13,886-byte `app.mrb` was installed on Pico 2 W + mruby/c; both a
+        software reboot and USB power cycle started the Timer AP without user
+        interaction. The current configuration has no PWM output because
+        Issue #42 is postponed.
 - [ ] In [Issue #45](https://github.com/vestige/picoruby-cyw43-ap/issues/45),
       run the full scenario with the original wiring on Pico 2 W + mruby/c:
       expiry with the browser closed, button-only operation, browser control,
