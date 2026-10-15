@@ -24,25 +24,13 @@ class PicoTimerButton
 end
 
 class PicoTimerButtonControl
-  def initialize(button, timer_state, status_led, expiry_led)
+  def initialize(button, control)
     @button = button
-    @timer_state = timer_state
-    @status_led = status_led
-    @expiry_led = expiry_led
+    @control = control
   end
 
   def update
     return unless @button.pressed?
-
-    if @timer_state.running?
-      @timer_state.stop
-      @status_led.stop
-    elsif @expiry_led.on?
-      @expiry_led.off
-    else
-      @timer_state.start
-      @status_led.start
-      @expiry_led.timer_started
-    end
+    @control.button_pressed
   end
 end

@@ -122,6 +122,16 @@ AP停止はPico 2 W + mruby/c実機で確認済みです。ただし現行例は
 - [ ] [Issue #42](https://github.com/vestige/picoruby-cyw43-ap/issues/42)で、
       GP21の圧電ブザーをPWMで駆動し、開始・停止・満了の効果音を再生する。
       音の再生はHTTP、スイッチ、満了判定を止めず、終了時にはPWMを停止する。
+- [x] [Issue #43](https://github.com/vestige/picoruby-cyw43-ap/issues/43)で、
+      Web操作と物理デバイスのTimer状態を同期する。
+      - 2026-10-13: Timer操作を共通コントローラへ集約し、ブラウザが`/status`を
+        定期取得して残り時間、状態、満了LED、Start系ラベルを自動更新する実装を
+        追加した。通信失敗中は再試行表示に切り替え、再接続後はPico側の状態を
+        正として復帰する。CRuby host smoke testでWeb操作とスイッチ操作、JSON状態、
+        複数回のStop/Resumeを確認した。
+      - 2026-10-15: Pico 2 W + mruby/c実機で、残り時間の自動更新、Web操作と
+        GP16操作の相互反映、Running中のWi-Fi切断・再接続後の自動復帰、3秒Timerの
+        複数回の満了、満了LED表示とLED Offの同期を確認した。
 - [x] [Issue #39](https://github.com/vestige/picoruby-cyw43-ap/issues/39)で、
       Pico W/2 Wの内蔵LEDを動作中の目印として点滅させる。ブラウザの残り時間と
       LED状態の自動更新、通信失敗時・再接続後の同期はIssue #43で扱う。
