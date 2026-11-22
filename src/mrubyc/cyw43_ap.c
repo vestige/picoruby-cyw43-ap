@@ -1,5 +1,7 @@
 #include <mrubyc.h>
 
+#include <stdio.h>
+
 static mrbc_func_t s_original_init;
 
 static bool
@@ -92,6 +94,90 @@ c_cyw43_ap_ipv4_netmask(mrbc_vm *vm, mrbc_value *v, int argc)
 }
 
 static void
+format_mac_address(char *buf, size_t buflen, const uint8_t *mac)
+{
+  snprintf(
+    buf, buflen, "%02x:%02x:%02x:%02x:%02x:%02x",
+    mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]
+  );
+}
+
+static void
+c_cyw43_ap_stations(mrbc_vm *vm, mrbc_value *v, int argc)
+{
+  size_t capacity = picoruby_cyw43_ap_max_stations();
+  mrbc_value result = mrbc_array_new(vm, capacity);
+  size_t count;
+
+  (void)argc;
+  if (capacity == 0) {
+    SET_RETURN(result);
+    return;
+  }
+  uint8_t macs[capacity][PICORUBY_CYW43_AP_MAC_LEN];
+  count = picoruby_cyw43_ap_stations(macs, capacity);
+  for (size_t i = 0; i < count; i++) {
+    char mac_address[18];
+    mrbc_value value;
+    format_mac_address(mac_address, sizeof(mac_address), macs[i]);
+    value = mrbc_string_new_cstr(vm, mac_address);
+    mrbc_array_push(&result, &value);
+  }
+  SET_RETURN(result);
+}
+
+static void
+c_cyw43_ap_client_count(mrbc_vm *vm, mrbc_value *v, int argc)
+{
+  size_t capacity = picoruby_cyw43_ap_max_stations();
+
+  (void)vm;
+  (void)argc;
+  if (capacity == 0) {
+    SET_INT_RETURN(0);
+    return;
+  }
+  uint8_t macs[capacity][PICORUBY_CYW43_AP_MAC_LEN];
+  SET_INT_RETURN(picoruby_cyw43_ap_stations(macs, capacity));
+}
+
+static void
+c_cyw43_ap_leases(mrbc_vm *vm, mrbc_value *v, int argc)
+{
+  picoruby_cyw43_ap_lease_t leases[PICORUBY_CYW43_AP_MAX_LEASES];
+  mrbc_value result = mrbc_array_new(vm, PICORUBY_CYW43_AP_MAX_LEASES);
+  size_t count;
+
+  (void)argc;
+  count = picoruby_cyw43_ap_leases(leases, PICORUBY_CYW43_AP_MAX_LEASES);
+  for (size_t i = 0; i < count; i++) {
+    char mac_address[18];
+    char ipv4_address[16];
+    mrbc_value entry = mrbc_hash_new(vm, 3);
+    mrbc_value key;
+    mrbc_value value;
+
+    format_mac_address(mac_address, sizeof(mac_address), leases[i].mac);
+    snprintf(
+      ipv4_address, sizeof(ipv4_address), "%u.%u.%u.%u",
+      leases[i].ipv4_address[0], leases[i].ipv4_address[1],
+      leases[i].ipv4_address[2], leases[i].ipv4_address[3]
+    );
+    key = mrbc_symbol_value(mrbc_str_to_symid("mac_address"));
+    value = mrbc_string_new_cstr(vm, mac_address);
+    mrbc_hash_set(&entry, &key, &value);
+    key = mrbc_symbol_value(mrbc_str_to_symid("ipv4_address"));
+    value = mrbc_string_new_cstr(vm, ipv4_address);
+    mrbc_hash_set(&entry, &key, &value);
+    key = mrbc_symbol_value(mrbc_str_to_symid("remaining_seconds"));
+    value = mrbc_integer_value(leases[i].remaining_seconds);
+    mrbc_hash_set(&entry, &key, &value);
+    mrbc_array_push(&result, &entry);
+  }
+  SET_RETURN(result);
+}
+
+static void
 c_cyw43_init_with_ap_cleanup(mrbc_vm *vm, mrbc_value *v, int argc)
 {
   if (1 < argc && GET_TT_ARG(2) == MRBC_TT_TRUE) {
@@ -126,6 +212,9 @@ mrbc_cyw43_ap_init(mrbc_vm *vm)
   mrbc_define_method(vm, class_ap, "ssid", c_cyw43_ap_ssid);
   mrbc_define_method(vm, class_ap, "ipv4_address", c_cyw43_ap_ipv4_address);
   mrbc_define_method(vm, class_ap, "ipv4_netmask", c_cyw43_ap_ipv4_netmask);
+  mrbc_define_method(vm, class_ap, "client_count", c_cyw43_ap_client_count);
+  mrbc_define_method(vm, class_ap, "stations", c_cyw43_ap_stations);
+  mrbc_define_method(vm, class_ap, "leases", c_cyw43_ap_leases);
 
   mrbc_define_method(vm, class_ap, "enable_ap_mode", c_cyw43_ap_enable);
   mrbc_define_method(vm, class_ap, "disable_ap_mode", c_cyw43_ap_disable);

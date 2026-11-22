@@ -57,6 +57,9 @@ puts CYW43::AP.active?
 puts CYW43::AP.ssid
 puts CYW43::AP.ipv4_address
 puts CYW43::AP.ipv4_netmask
+puts CYW43::AP.client_count
+CYW43::AP.stations.each { |mac| puts mac }
+CYW43::AP.leases.each { |lease| p lease }
 
 CYW43::AP.disable
 ```
@@ -141,6 +144,21 @@ buzzer is added, its PWM cleanup must cover both Ctrl+C and abnormal exit.
 - `CYW43::AP.ssid -> String | nil`
 - `CYW43::AP.ipv4_address -> String | nil`
 - `CYW43::AP.ipv4_netmask -> String | nil`
+- `CYW43::AP.client_count -> Integer`
+- `CYW43::AP.stations -> Array<String>`
+- `CYW43::AP.leases -> Array<Hash>`
+
+`client_count` and `stations` report stations currently associated with the AP,
+using the Pico SDK. Each `stations` entry is a lowercase MAC address such as
+`"aa:bb:cc:dd:ee:ff"`. They return zero and an empty array while the AP is
+inactive or no station is associated.
+
+`leases` contains only unexpired leases ACKed by this gem's DHCP server. Each
+Hash has `:mac_address`, `:ipv4_address`, and `:remaining_seconds`. A pending
+DHCP OFFER is not included, so an associated station may appear in `stations`
+before it appears in `leases`. DHCP RELEASE, expiry, AP shutdown, and AP restart
+remove the corresponding information. Arrays, strings, and Hashes returned by
+these APIs are copies and cannot modify the internal tables.
 
 For migration from PicoRuby PR #489, aliases under `CYW43::AP` are available:
 `enable_ap_mode`, `disable_ap_mode`, `ap_active?`, `ap_ssid`,
@@ -157,8 +175,8 @@ follow-up socket/Core issues are in [TODO.md](TODO.md) and the linked Issues;
 the HTTP examples are not part of the gem's AP/DHCP implementation.
 
 The gem supports one AP interface and four DHCP leases. It does not provide a
-custom AP network, DNS, NAT, captive portal, built-in HTTP server, or
-station-count API. STA remains owned by `picoruby-cyw43`.
+custom AP network, DNS, NAT, captive portal, or built-in HTTP server. STA
+remains owned by `picoruby-cyw43`.
 
 `CYW43::AP.disable` releases the DHCP UDP PCB and leases before disabling the
 AP. The mruby finalizer and `CYW43.init(force: true)` cleanup path also stop
