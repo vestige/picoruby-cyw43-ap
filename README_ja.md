@@ -55,6 +55,9 @@ puts CYW43::AP.active?
 puts CYW43::AP.ssid
 puts CYW43::AP.ipv4_address
 puts CYW43::AP.ipv4_netmask
+puts CYW43::AP.client_count
+CYW43::AP.stations.each { |mac| puts mac }
+CYW43::AP.leases.each { |lease| p lease }
 
 CYW43::AP.disable
 ```
@@ -136,6 +139,19 @@ Ctrl+Cと異常終了の両方でPWMを停止する必要があります。
 - `CYW43::AP.ssid -> String | nil`
 - `CYW43::AP.ipv4_address -> String | nil`
 - `CYW43::AP.ipv4_netmask -> String | nil`
+- `CYW43::AP.client_count -> Integer`
+- `CYW43::AP.stations -> Array<String>`
+- `CYW43::AP.leases -> Array<Hash>`
+
+`client_count`と`stations`は、APへWi-Fiで関連付け中の端末をPico SDKから
+取得します。`stations`の各要素は小文字のMACアドレスです
+（例：`"aa:bb:cc:dd:ee:ff"`）。AP停止中または端末未接続時は0と空配列を返します。
+
+`leases`は、このgemのDHCPサーバーがACKした有効なleaseだけを返します。
+各Hashは`:mac_address`、`:ipv4_address`、`:remaining_seconds`を持ちます。
+DHCP OFFER中の端末は含めません。そのため、関連付け済みでもDHCP ACK前の端末は
+`stations`には現れ、`leases`には現れません。DHCP RELEASE、期限切れ、AP停止・再起動で
+該当情報は消えます。返される配列・文字列・Hashは内部テーブルのコピーです。
 
 PicoRuby PR #489からの移行用に、`CYW43::AP`の下で
 `enable_ap_mode`、`disable_ap_mode`、`ap_active?`、`ap_ssid`、
@@ -151,7 +167,7 @@ Pico 2 W + mruby/c・mruby、Pico W + mruby/cでコンパイルとリンクを
 Issueに記録しています。HTTPサンプルは、このgemのAP/DHCP実装には含まれません。
 
 APインターフェースは1つ、DHCP leaseは4件です。カスタムAPネットワーク、DNS、
-NAT、キャプティブポータル、内蔵HTTPサーバー、接続端末数の取得APIはありません。
+NAT、キャプティブポータル、内蔵HTTPサーバーはありません。
 STAは引き続き`picoruby-cyw43`が担当します。
 
 `CYW43::AP.disable`はAP停止前にDHCP UDP PCBとleaseを解放します。mrubyの

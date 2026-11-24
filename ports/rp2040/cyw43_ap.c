@@ -1,6 +1,7 @@
 #include "../../include/picoruby_cyw43_ap.h"
 #include "ap_dhcp_server.h"
 
+#include <limits.h>
 #include <string.h>
 
 #include "pico/cyw43_arch.h"
@@ -129,4 +130,45 @@ const char *
 picoruby_cyw43_ap_ipv4_netmask(char *buf, size_t buflen)
 {
   return picoruby_cyw43_ap_ipv4_value(true, buf, buflen);
+}
+
+size_t
+picoruby_cyw43_ap_max_stations(void)
+{
+  int count = 0;
+
+  if (picoruby_cyw43_ap_active()) {
+    cyw43_wifi_ap_get_max_stas(&cyw43_state, &count);
+  }
+  return count > 0 ? (size_t)count : 0;
+}
+
+size_t
+picoruby_cyw43_ap_stations(
+  uint8_t macs[][PICORUBY_CYW43_AP_MAC_LEN],
+  size_t capacity
+)
+{
+  int count;
+
+  if (!picoruby_cyw43_ap_active() || !macs || capacity == 0) {
+    return 0;
+  }
+  count = capacity > INT_MAX ? INT_MAX : (int)capacity;
+  cyw43_wifi_ap_get_stas(&cyw43_state, &count, &macs[0][0]);
+  return count > 0 ? (size_t)count : 0;
+}
+
+size_t
+picoruby_cyw43_ap_leases(picoruby_cyw43_ap_lease_t *leases, size_t capacity)
+{
+  size_t count;
+
+  if (!picoruby_cyw43_ap_active() || !leases || capacity == 0) {
+    return 0;
+  }
+  cyw43_arch_lwip_begin();
+  count = picoruby_cyw43_ap_dhcp_server_leases(leases, capacity);
+  cyw43_arch_lwip_end();
+  return count;
 }

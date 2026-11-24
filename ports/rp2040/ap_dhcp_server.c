@@ -66,6 +66,7 @@ typedef struct {
   ip4_addr_t addr;
   uint32_t lease_sec;
   uint64_t expires_at_ms;
+  bool acknowledged;
 } ap_dhcp_lease_t;
 
 typedef struct {
@@ -117,6 +118,7 @@ ap_dhcp_release_lease(ap_dhcp_lease_t *lease)
 {
   memset(lease->mac, 0, sizeof(lease->mac));
   lease->expires_at_ms = 0;
+  lease->acknowledged = false;
 }
 
 static bool
@@ -385,6 +387,7 @@ ap_dhcp_udp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *pbuf, const ip_add
       }
       memcpy(lease->mac, packet.chaddr, 6);
       lease->expires_at_ms = ap_dhcp_now_ms() + (uint64_t)lease->lease_sec * 1000;
+      lease->acknowledged = true;
       ap_dhcp_send_reply(pcb, ap_netif, &packet, AP_DHCP_ACK, lease);
       break;
     }
@@ -469,4 +472,31 @@ picoruby_cyw43_ap_dhcp_server_stop(void)
   }
   memset(s_leases, 0, sizeof(s_leases));
   cyw43_arch_lwip_end();
+}
+
+size_t
+picoruby_cyw43_ap_dhcp_server_leases(
+  picoruby_cyw43_ap_lease_t *leases,
+  size_t capacity
+)
+{
+  size_t count = 0;
+  uint64_t now_ms = ap_dhcp_now_ms();
+
+  for (size_t i = 0; i < AP_DHCP_MAX_LEASES; i++) {
+    ap_dhcp_lease_t *lease = &s_leases[i];
+    if (ap_dhcp_lease_vacant(lease) || !lease->acknowledged) {
+      continue;
+    }
+    if (count < capacity && leases) {
+      uint32_t address = lease->addr.addr;
+      memcpy(leases[count].mac, lease->mac, sizeof(leases[count].mac));
+      memcpy(leases[count].ipv4_address, &address, sizeof(leases[count].ipv4_address));
+      leases[count].remaining_seconds =
+        (uint32_t)((lease->expires_at_ms - now_ms + 999) / 1000);
+    }
+    count++;
+  }
+
+  return count < capacity ? count : capacity;
 }

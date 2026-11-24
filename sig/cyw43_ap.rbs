@@ -7,6 +7,9 @@ class CYW43
     def self.ssid: () -> (String | nil)
     def self.ipv4_address: () -> (String | nil)
     def self.ipv4_netmask: () -> (String | nil)
+    def self.client_count: () -> Integer
+    def self.stations: () -> Array[String]
+    def self.leases: () -> Array[{ mac_address: String, ipv4_address: String, remaining_seconds: Integer }]
 
     def self.enable_ap_mode: (String ssid, String password, ?Integer auth) -> bool
     def self.disable_ap_mode: () -> bool
